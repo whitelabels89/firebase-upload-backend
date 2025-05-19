@@ -1,5 +1,3 @@
-// FILE: firebase_upload.js
-
 const express = require('express');
 const multer = require('multer');
 const cors = require("cors"); // ⬅️ Tambahin ini
@@ -66,10 +64,12 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 app.post("/hapus-karya", async (req, res) => {
-  const { cid, timestamp } = req.body;
-  if (!cid || !timestamp) return res.json({ success: false });
-
   try {
+    const { cid, timestamp } = req.body;
+    if (!cid || !timestamp) {
+      return res.status(400).json({ success: false, message: "Missing CID or timestamp" });
+    }
+
     const auth = new google.auth.GoogleAuth({
       keyFile: "serviceAccountKey.json",
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -78,21 +78,32 @@ app.post("/hapus-karya", async (req, res) => {
 
     const sheetId = "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY";
     const tabName = "KARYA_ANAK";
+    const sheetIdInternal = 368316898;
 
     const getRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: `${tabName}!A2:D`,
     });
 
-    const rows = getRes.data.values;
+    const rows = getRes.data.values || [];
     const rowIndex = rows.findIndex(r => r[0] === timestamp);
-    if (rowIndex === -1) return res.json({ success: false });
+    if (rowIndex === -1) {
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+    }
 
     const fileUrl = rows[rowIndex][3];
-    const filename = fileUrl.split("/").slice(-1)[0].split("?")[0];
+    const fileIdMatch = fileUrl.match(/\/([^\/?]+)\?*.*$/);
+    if (!fileIdMatch) {
+      return res.status(400).json({ success: false, message: "URL file tidak valid" });
+    }
+    const filename = fileIdMatch[1];
 
     // Hapus file dari Firebase Storage
-    await bucket.file(`karya/${cid}/${filename}`).delete();
+    try {
+      await bucket.file(`karya/${cid}/${filename}`).delete();
+    } catch (err) {
+      console.warn("⚠️ File tidak ditemukan di storage:", filename);
+    }
 
     // Hapus baris dari sheet
     await sheets.spreadsheets.batchUpdate({
@@ -101,7 +112,7 @@ app.post("/hapus-karya", async (req, res) => {
         requests: [{
           deleteDimension: {
             range: {
-              sheetId: 0,
+              sheetId: sheetIdInternal,
               dimension: "ROWS",
               startIndex: rowIndex + 1,
               endIndex: rowIndex + 2,
@@ -112,9 +123,10 @@ app.post("/hapus-karya", async (req, res) => {
     });
 
     res.json({ success: true });
+
   } catch (e) {
-    console.error("Gagal hapus karya:", e);
-    res.json({ success: false });
+    console.error("❌ Gagal hapus karya:", e);
+    res.status(500).json({ success: false, message: "Internal error", error: e.message });
   }
 });
 
