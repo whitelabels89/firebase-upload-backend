@@ -16,7 +16,7 @@ fs.writeFileSync("serviceAccountKey.json", serviceAccountBuffer);
 const serviceAccount = require("./serviceAccountKey.json");
 
 
-// Init Firebase Adminnnnn
+// Init Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: 'socmed-karya-anak.firebasestorage.app'
