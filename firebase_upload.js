@@ -89,7 +89,10 @@ app.post("/hapus-karya", async (req, res) => {
     });
 
     const rows = getRes.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === timestamp);
+    const rowIndex = rows.findIndex(r => {
+      const sheetTime = new Date(r[0]).toISOString();
+      return sheetTime === timestamp;
+    });
     if (rowIndex === -1) {
       return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
