@@ -91,30 +91,29 @@ app.post("/hapus-karya", async (req, res) => {
 
     const rows = getRes.data.values || [];
     console.log("📥 Mencari ID_KARYA:", id_karya);
-    rows.forEach((r, i) => {
-      console.log(`🔍 Row ${i}:`, r[4]);
-    });
-    const rowIndex = rows.findIndex(r => {
+    const rowIndex = rows.findIndex((r, i) => {
       const id = (r[4] || "").toString().trim().toUpperCase();
+      console.log(`🔍 Row ${i}:`, id);
       return id === id_karya.toUpperCase();
     });
+
     if (rowIndex === -1) {
-      return res.status(404).json({ success: false, message: "ID_KARYA tidak ditemukan" });
+      console.error("❌ ID_KARYA tidak ditemukan di sheet");
+      return res.status(404).json({ success: false, message: "ID_KARYA tidak ditemukan di sheet" });
     }
 
-    const fileUrl = rows[rowIndex][3];
+    let deleted = false;
     try {
+      const fileUrl = rows[rowIndex][3];
       const urlObj = new URL(fileUrl);
       const pathParts = urlObj.pathname.split('/');
-      const filename = decodeURIComponent(pathParts.slice(2).join('/')); // ambil karya/QACxxx/...
-
-      console.log("📎 URL dari Sheet:", fileUrl);
-      console.log("🧹 Akan menghapus file:", filename);
+      const filename = decodeURIComponent(pathParts.slice(2).join('/'));
 
       console.log("🧹 Deleting file:", filename);
       await bucket.file(filename).delete();
+      deleted = true;
     } catch (err) {
-      console.warn("⚠️ Gagal parsing atau menghapus file:", err.message);
+      console.warn("⚠️ Gagal menghapus file:", err.message);
     }
 
     // Hapus baris dari sheettttt
@@ -134,7 +133,10 @@ app.post("/hapus-karya", async (req, res) => {
       },
     });
 
-    res.json({ success: true });
+    res.json({
+      success: true,
+      message: deleted ? "Berhasil hapus karya dan file" : "Berhasil hapus karya (file tidak ditemukan)"
+    });
 
   } catch (e) {
     console.error("❌ Gagal hapus karya (fatal):", e);
