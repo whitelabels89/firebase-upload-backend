@@ -7,6 +7,7 @@ const { Storage } = require("@google-cloud/storage");
 const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
+const { google } = require("googleapis");
 
 // Load service account
 const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
@@ -61,6 +62,59 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   } catch (err) {
     console.error('❌ Upload error:', err);
     res.status(500).json({ message: '❌ Gagal upload: ' + err.message });
+  }
+});
+
+app.post("/hapus-karya", async (req, res) => {
+  const { cid, timestamp } = req.body;
+  if (!cid || !timestamp) return res.json({ success: false });
+
+  try {
+    const auth = new google.auth.GoogleAuth({
+      keyFile: "serviceAccountKey.json",
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheets = google.sheets({ version: "v4", auth: await auth.getClient() });
+
+    const sheetId = "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY";
+    const tabName = "KARYA_ANAK";
+
+    const getRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: `${tabName}!A2:D`,
+    });
+
+    const rows = getRes.data.values;
+    const rowIndex = rows.findIndex(r => r[0] === timestamp);
+    if (rowIndex === -1) return res.json({ success: false });
+
+    const fileUrl = rows[rowIndex][3];
+    const filename = fileUrl.split("/").slice(-1)[0].split("?")[0];
+
+    // Hapus file dari Firebase Storage
+    await bucket.file(`karya/${cid}/${filename}`).delete();
+
+    // Hapus baris dari sheet
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        requests: [{
+          deleteDimension: {
+            range: {
+              sheetId: 0,
+              dimension: "ROWS",
+              startIndex: rowIndex + 1,
+              endIndex: rowIndex + 2,
+            },
+          },
+        }],
+      },
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error("Gagal hapus karya:", e);
+    res.json({ success: false });
   }
 });
 
