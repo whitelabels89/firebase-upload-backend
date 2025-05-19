@@ -24,7 +24,8 @@ const bucket = admin.storage().bucket();
 const app = express();
 const PORT = process.env.PORT || 3001;
 app.use(cors()); // ⬅️ Ini juga WAJIB
-app.use(express.json()); // ⬅️ WAJIB untuk parsing req.body JSON!
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 
 // Upload middleware
