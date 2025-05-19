@@ -49,6 +49,13 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
     console.log('✅ Uploaded to Firebase:', publicUrl);
+
+    await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cid, title, url: publicUrl })
+    });
+    
     res.status(200).json({ message: '✅ Karya berhasil diupload!', url: publicUrl });
 
   } catch (err) {
