@@ -67,6 +67,25 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// Tambahkan di firebase-upload-backend
+app.post("/update-profil", async (req, res) => {
+  try {
+    const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req.body)
+    });
+
+    const result = await response.json();
+    res.json(result);
+
+  } catch (err) {
+    console.error("❌ Gagal update profil:", err);
+    res.status(500).json({ message: "❌ Gagal update profil", error: err.message });
+  }
+});
+
+
 app.post("/hapus-karya", async (req, res) => {
   try {
     const { cid, id_karya } = req.body;
