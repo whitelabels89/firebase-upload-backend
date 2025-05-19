@@ -50,12 +50,13 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     fs.unlinkSync(file.path); // hapus file temp
 
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+    const id_karya = `KID-${cid}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     console.log('✅ Uploaded to Firebase:', publicUrl);
 
     await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cid, title, url: publicUrl })
+      body: JSON.stringify({ cid, title, url: publicUrl, id_karya })
     });
     
     res.status(200).json({ message: '✅ Karya berhasil diupload!', url: publicUrl });
@@ -68,9 +69,9 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
 app.post("/hapus-karya", async (req, res) => {
   try {
-    const { cid, timestamp } = req.body;
-    if (!cid || !timestamp) {
-      return res.status(400).json({ success: false, message: "Missing CID or timestamp" });
+    const { cid, id_karya } = req.body;
+    if (!cid || !id_karya) {
+      return res.status(400).json({ success: false, message: "Missing CID or id_karya" });
     }
 
     const auth = new google.auth.GoogleAuth({
@@ -89,10 +90,7 @@ app.post("/hapus-karya", async (req, res) => {
     });
 
     const rows = getRes.data.values || [];
-    const rowIndex = rows.findIndex(r => {
-      const sheetTime = new Date(r[0]).toISOString();
-      return sheetTime === timestamp;
-    });
+    const rowIndex = rows.findIndex(r => r[4] === id_karya);
     if (rowIndex === -1) {
       return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
     }
