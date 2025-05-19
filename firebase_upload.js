@@ -90,9 +90,16 @@ app.post("/hapus-karya", async (req, res) => {
     });
 
     const rows = getRes.data.values || [];
-    const rowIndex = rows.findIndex(r => r[4] === id_karya);
+    console.log("📥 Mencari ID_KARYA:", id_karya);
+    rows.forEach((r, i) => {
+      console.log(`🔍 Row ${i}:`, r[4]);
+    });
+    const rowIndex = rows.findIndex(r => {
+      const id = (r[4] || "").toString().trim().toUpperCase();
+      return id === id_karya.toUpperCase();
+    });
     if (rowIndex === -1) {
-      return res.status(404).json({ success: false, message: "Data tidak ditemukan" });
+      return res.status(404).json({ success: false, message: "ID_KARYA tidak ditemukan" });
     }
 
     const fileUrl = rows[rowIndex][3];
