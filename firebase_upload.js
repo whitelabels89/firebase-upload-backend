@@ -9,8 +9,6 @@ const fs = require('fs');
 const path = require('path');
 
 // Load service account
-const fs = require("fs");
-
 const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
 fs.writeFileSync("serviceAccountKey.json", serviceAccountBuffer);
 
