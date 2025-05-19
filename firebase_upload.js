@@ -92,17 +92,15 @@ app.post("/hapus-karya", async (req, res) => {
     }
 
     const fileUrl = rows[rowIndex][3];
-    const fileIdMatch = fileUrl.match(/\/([^\/?]+)\?*.*$/);
-    if (!fileIdMatch) {
-      return res.status(400).json({ success: false, message: "URL file tidak valid" });
-    }
-    const filename = fileIdMatch[1];
-
-    // Hapus file dari Firebase Storage
     try {
-      await bucket.file(`karya/${cid}/${filename}`).delete();
+      const urlObj = new URL(fileUrl);
+      const pathParts = urlObj.pathname.split('/');
+      const filename = decodeURIComponent(pathParts.slice(2).join('/')); // ambil karya/QACxxx/...
+
+      console.log("🧹 Deleting file:", filename);
+      await bucket.file(filename).delete();
     } catch (err) {
-      console.warn("⚠️ File tidak ditemukan di storage:", filename);
+      console.warn("⚠️ Gagal parsing atau menghapus file:", err.message);
     }
 
     // Hapus baris dari sheettttt
