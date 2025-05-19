@@ -86,7 +86,7 @@ app.post("/hapus-karya", async (req, res) => {
 
     const getRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: `${tabName}!A2:D`,
+      range: `${tabName}!A2:E`,
     });
 
     const rows = getRes.data.values || [];
