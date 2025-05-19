@@ -105,6 +105,10 @@ app.post("/hapus-karya", async (req, res) => {
     let deleted = false;
     try {
       const fileUrl = rows[rowIndex][3];
+      console.log("📦 fileUrl dari Sheet:", fileUrl);
+      if (!fileUrl || typeof fileUrl !== "string" || !fileUrl.startsWith("http")) {
+        throw new Error("fileUrl tidak valid: " + fileUrl);
+      }
       const urlObj = new URL(fileUrl);
       const pathParts = urlObj.pathname.split('/');
       const filename = decodeURIComponent(pathParts.slice(2).join('/'));
@@ -112,6 +116,10 @@ app.post("/hapus-karya", async (req, res) => {
       console.log("🧹 Deleting file:", filename);
       await bucket.file(filename).delete();
       deleted = true;
+      // Logging output rowIndex, filename, and deleted before res.json
+      console.log("✅ rowIndex ditemukan:", rowIndex);
+      console.log("✅ filename parsed:", filename);
+      console.log("✅ deleted status:", deleted);
     } catch (err) {
       console.warn("⚠️ Gagal menghapus file:", err.message);
     }
