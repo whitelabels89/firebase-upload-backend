@@ -24,8 +24,9 @@ const bucket = admin.storage().bucket();
 const app = express();
 const PORT = process.env.PORT || 3001;
 app.use(cors()); // ⬅️ Ini juga WAJIB
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "5mb" })); // Bisa sesuaikan hingga 10mb kalau perlu
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+
 
 
 // Upload middleware
