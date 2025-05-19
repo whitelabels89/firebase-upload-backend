@@ -97,6 +97,9 @@ app.post("/hapus-karya", async (req, res) => {
       const pathParts = urlObj.pathname.split('/');
       const filename = decodeURIComponent(pathParts.slice(2).join('/')); // ambil karya/QACxxx/...
 
+      console.log("📎 URL dari Sheet:", fileUrl);
+      console.log("🧹 Akan menghapus file:", filename);
+
       console.log("🧹 Deleting file:", filename);
       await bucket.file(filename).delete();
     } catch (err) {
@@ -123,7 +126,10 @@ app.post("/hapus-karya", async (req, res) => {
     res.json({ success: true });
 
   } catch (e) {
-    console.error("❌ Gagal hapus karya:", e);
+    console.error("❌ Gagal hapus karya (fatal):", e);
+    if (e.response && e.response.data) {
+      console.error("📦 Error detail dari Google API:", e.response.data);
+    }
     res.status(500).json({ success: false, message: "Internal error", error: e.message });
   }
 });
