@@ -27,6 +27,56 @@ app.use(cors()); // ⬅️ Ini juga WAJIB
 app.use(express.json({ limit: "5mb" })); // Bisa sesuaikan hingga 10mb kalau perlu
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
+// Ambil data dari Google Sheets PROFILE_ANAK
+async function getProfileAnakData() {
+  const auth = new google.auth.GoogleAuth({
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+  const spreadsheetId = process.env.SPREADSHEET_ID;
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "PROFILE_ANAK!A1:Z",
+  });
+
+  const rows = response.data.values;
+  if (!rows || rows.length === 0) return [];
+
+  const headers = rows[0];
+  return rows.slice(1).map(row => {
+    const rowObj = {};
+    headers.forEach((header, i) => {
+      rowObj[header.trim().toLowerCase()] = (row[i] || "").trim();
+    });
+    return rowObj;
+  });
+}
+
+// Endpoint: login dengan nomor WhatsApp dan password
+app.get("/login", async (req, res) => {
+  const { username, password } = req.query;
+
+  try {
+    const sheetData = await getProfileAnakData();
+    const user = sheetData.find(row =>
+      row.whatsapp.replace(/\s+/g, "") === username &&
+      row.password === password
+    );
+
+    if (user) {
+      const migrated = user.migrated?.toLowerCase() === "true";
+      return res.json({ success: true, cid: user.cid, migrated });
+    }
+
+    res.json({ success: false });
+  } catch (err) {
+    console.error("❌ Error login:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
 
 
 // Upload middleware
