@@ -234,7 +234,14 @@ app.get("/proxy-following", async (req, res) => {
   const url = `https://script.google.com/macros/s/AKfycbyGoRJN_Sq3zgIhvkHh3NjlmBng7dOPgX_g4SnVCaZH8irWCrTJt6ZRCaXtaHRZTr52/exec?cid=${cid}`;
   try {
     const response = await fetch(url);
-    const json = await response.json();
+    const text = await response.text();
+
+    if (!text.startsWith("{") && !text.startsWith("[")) {
+      console.error("❌ Invalid response from Google Script:", text.slice(0, 100));
+      return res.status(500).json({ error: "Invalid response from Google Apps Script", preview: text.slice(0, 100) });
+    }
+
+    const json = JSON.parse(text);
     res.json(json);
   } catch (err) {
     console.error("❌ Proxy Error:", err);
