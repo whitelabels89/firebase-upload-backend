@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { google } = require("googleapis");
 
-// Load service account
+// Tulis file kredensial lebih awal
 const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
 fs.writeFileSync("serviceAccountKey.json", serviceAccountBuffer);
 
