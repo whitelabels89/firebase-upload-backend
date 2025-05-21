@@ -226,6 +226,22 @@ app.post("/hapus-karya", async (req, res) => {
   }
 });
 
+// Proxy endpoint untuk bypass CORS ke Google Apps Script
+app.get("/proxy-following", async (req, res) => {
+  const { cid } = req.query;
+  if (!cid) return res.status(400).json({ error: "Missing cid" });
+
+  const url = `https://script.google.com/macros/s/AKfycbyGoRJN_Sq3zgIhvkHh3NjlmBng7dOPgX_g4SnVCaZH8irWCrTJt6ZRCaXtaHRZTr52/exec?cid=${cid}`;
+  try {
+    const response = await fetch(url);
+    const json = await response.json();
+    res.json(json);
+  } catch (err) {
+    console.error("❌ Proxy Error:", err);
+    res.status(500).json({ error: "Proxy gagal", detail: err.message });
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('🔥 Firebase Upload Server Ready');
 });
