@@ -1,5 +1,3 @@
-
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
@@ -52,7 +50,7 @@ app.get("/login", async (req, res) => {
   const sheetData = await getProfileAnakData();
   const user = sheetData.find(row =>
     row.whatsapp.replace(/\s+/g, "") === username &&
-    password === "cerdas123"
+    row.password === password
   );
 
   if (user) {
