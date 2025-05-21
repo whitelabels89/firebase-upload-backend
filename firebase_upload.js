@@ -30,6 +30,7 @@ app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 // Ambil data dari Google Sheets PROFILE_ANAK
 async function getProfileAnakData() {
   const auth = new google.auth.GoogleAuth({
+    keyFile: "serviceAccountKey.json", // ⬅️ INI YANG BELUM ADA
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
   const client = await auth.getClient();
