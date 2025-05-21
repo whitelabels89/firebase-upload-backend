@@ -67,7 +67,7 @@ app.get("/login", async (req, res) => {
 
     if (user) {
       const migrated = user.migrated?.toLowerCase() === "true";
-      return res.json({ success: true, cid: user.cid, migrated });
+      return res.json({ success: true, cid: user["cid"], migrated });
     }
 
     res.json({ success: false });
