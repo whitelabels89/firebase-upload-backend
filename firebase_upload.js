@@ -231,7 +231,7 @@ app.get("/proxy-following", async (req, res) => {
   const { cid } = req.query;
   if (!cid) return res.status(400).json({ error: "Missing cid" });
 
-  const url = `https://script.google.com/macros/s/AKfycbyGoRJN_Sq3zgIhvkHh3NjlmBng7dOPgX_g4SnVCaZH8irWCrTJt6ZRCaXtaHRZTr52/exec?cid=${cid}`;
+  const url = `https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec?cid=${cid}`;
   try {
     const response = await fetch(url);
     const text = await response.text();
