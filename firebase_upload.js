@@ -226,25 +226,27 @@ app.post("/hapus-karya", async (req, res) => {
   }
 });
 
-// Proxy endpoint untuk bypass CORS ke Google Apps Script
+// Proxy endpoint untuk bypass CORS ke Google Apps Script (GET daftar following)
 app.get("/proxy-following", async (req, res) => {
   const { cid } = req.query;
   if (!cid) return res.status(400).json({ error: "Missing cid" });
 
   const url = `https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec?cid=${cid}`;
+
   try {
     const response = await fetch(url);
     const text = await response.text();
 
-    if (!text.startsWith("{") && !text.startsWith("[")) {
-      console.error("❌ Invalid response from Google Script:", text.slice(0, 100));
+    // Validasi: response harus berupa JSON array atau object
+    if (!text.trim().startsWith("{") && !text.trim().startsWith("[")) {
+      console.error("❌ Invalid response from GAS (FOLLOWING):", text.slice(0, 100));
       return res.status(500).json({ error: "Invalid response from Google Apps Script", preview: text.slice(0, 100) });
     }
 
-    const json = JSON.parse(text);
-    res.json(json);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.send(text);
   } catch (err) {
-    console.error("❌ Proxy Error:", err);
+    console.error("❌ Proxy FOLLOWING Error:", err);
     res.status(500).json({ error: "Proxy gagal", detail: err.message });
   }
 });
@@ -252,10 +254,7 @@ app.get("/proxy-following", async (req, res) => {
 // Proxy endpoint untuk bypass CORS ke Google Apps Script (GET profil by CID)
 app.get('/proxy-getprofile', async (req, res) => {
   const { cid } = req.query;
-
-  if (!cid) {
-    return res.status(400).json({ error: "Missing cid" });
-  }
+  if (!cid) return res.status(400).json({ error: "Missing cid" });
 
   const url = `https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec?cid=${cid}`;
 
@@ -263,15 +262,15 @@ app.get('/proxy-getprofile', async (req, res) => {
     const response = await fetch(url);
     const text = await response.text();
 
-    if (!text.startsWith("{") && !text.startsWith("[")) {
-      console.error("❌ Invalid response from Google Script:", text.slice(0, 100));
+    if (!text.trim().startsWith("{") && !text.trim().startsWith("[")) {
+      console.error("❌ Invalid response from GAS (PROFILE):", text.slice(0, 100));
       return res.status(500).json({ error: "Invalid response from Google Apps Script", preview: text.slice(0, 100) });
     }
 
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.send(text);
   } catch (err) {
-    console.error("❌ Proxy GetProfile Error:", err);
+    console.error("❌ Proxy GETPROFILE Error:", err);
     res.status(500).json({ error: "Proxy gagal", detail: err.message });
   }
 });
