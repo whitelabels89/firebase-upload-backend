@@ -154,6 +154,23 @@ app.post("/update-following", async (req, res) => {
   }
 });
 
+// Endpoint: update-follower via POST dari frontend
+app.post("/update-follower", async (req, res) => {
+  try {
+    const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...req.body, action: "updateFollower" })
+    });
+
+    const result = await response.json();
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Gagal update follower:", err);
+    res.status(500).json({ message: "❌ Gagal update follower", error: err.message });
+  }
+});
+
 
 app.post("/hapus-karya", async (req, res) => {
   try {
