@@ -139,18 +139,52 @@ app.post("/update-profil", async (req, res) => {
 
 // Endpoint: update-following via POST dari frontend
 app.post("/update-following", async (req, res) => {
+  const { cid, followingList } = req.body;
+
+  if (!cid || !Array.isArray(followingList)) {
+    return res.status(400).json({ error: 'Data tidak valid' });
+  }
+
   try {
-    const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...req.body, action: "updateFollowing" })
+    const url = `https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec`;
+
+    // 1. Update FOLLOWING_ANAK
+    const followingRes = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'updateFollowing',
+        cid,
+        followingList
+      })
     });
 
-    const result = await response.json();
-    res.json(result);
+    const followingResult = await followingRes.json();
+
+    // 2. Update FOLLOWER_ANAK untuk semua target CID
+    for (const targetCid of followingList) {
+      const followerRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateFollower',
+          cid: targetCid,
+          followerList: [cid]
+        })
+      });
+
+      const followerText = await followerRes.text();
+      if (!followerText.trim().startsWith("{")) {
+        console.error("❌ Invalid response from GAS (FOLLOWER):", followerText.slice(0, 100));
+      }
+    }
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.json(followingResult);
+
   } catch (err) {
-    console.error("❌ Gagal update following:", err);
-    res.status(500).json({ message: "❌ Gagal update following", error: err.message });
+    console.error("❌ Error update-following/follower:", err);
+    res.status(500).json({ error: "Gagal update following/follower", detail: err.message });
   }
 });
 
