@@ -437,7 +437,7 @@ app.post("/ganti-password", async (req, res) => {
     res.json(result);
 
   } catch (err) {
-    console.error("❌ Gagal ganti password:", err);
+    console.error("❌   :", err);
     res.status(500).json({ success: false, message: "Gagal ganti password", error: err.message });
   }
 });
