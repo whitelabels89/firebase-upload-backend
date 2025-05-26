@@ -130,6 +130,23 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// Endpoint: Feed Karya - Ambil 10 karya terbaru dari Firestore
+app.get("/feed-karya", async (req, res) => {
+  try {
+    const snapshot = await db.collection("karya_anak")
+      .orderBy("timestamp", "desc")
+      .limit(10)
+      .get();
+
+    const karyaList = snapshot.docs.map(doc => doc.data());
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.json(karyaList);
+  } catch (err) {
+    console.error("❌ Gagal mengambil feed karya dari Firestore:", err);
+    res.status(500).json({ message: "❌ Gagal ambil feed karya", error: err.message });
+  }
+});
+
 // Tambahkan di firebase-upload-backend
 app.post("/update-profil", async (req, res) => {
   try {
