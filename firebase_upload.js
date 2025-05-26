@@ -1,3 +1,29 @@
+// Endpoint: ganti-password
+app.post("/ganti-password", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: "Data tidak lengkap." });
+    }
+
+    const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "gantiPassword",
+        username,
+        password
+      })
+    });
+
+    const result = await response.json();
+    res.json(result);
+
+  } catch (err) {
+    console.error("❌ Gagal ganti password:", err);
+    res.status(500).json({ success: false, message: "Gagal ganti password", error: err.message });
+  }
+});
 const express = require('express');
 const multer = require('multer');
 const cors = require("cors"); // ⬅️ Tambahin ini
@@ -391,8 +417,20 @@ app.get('/proxy-getprofile', async (req, res) => {
       return res.status(500).json({ error: "Invalid response from Google Apps Script", preview: text.slice(0, 100) });
     }
 
+    let profileData = JSON.parse(text);
+
+    // Tambahkan role dari Firestore jika ada
+    try {
+      const docSnap = await db.collection("akun").doc(cid).get();
+      if (docSnap.exists) {
+        profileData.role = docSnap.data().role || "";
+      }
+    } catch (firestoreErr) {
+      console.warn("⚠️ Gagal ambil role dari Firestore:", firestoreErr.message);
+    }
+
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.send(text);
+    res.json(profileData);
   } catch (err) {
     console.error("❌ Proxy GETPROFILE Error:", err);
     res.status(500).json({ error: "Proxy gagal", detail: err.message });
