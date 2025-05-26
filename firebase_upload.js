@@ -6,8 +6,6 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 const { google } = require("googleapis");
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore();
 
 // Tulis file kredensial lebih awal
 const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
@@ -21,6 +19,8 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: 'socmed-karya-anak.firebasestorage.app'
 });
+
+const db = admin.firestore();
 
 const bucket = admin.storage().bucket();
 const app = express();
