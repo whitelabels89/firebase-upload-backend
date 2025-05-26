@@ -90,6 +90,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     const file = req.file;
     const { cid, title } = req.body;
 
+    const profileRes = await fetch(`https://firebase-upload-backend.onrender.com/proxy-getprofile?cid=${cid}`);
+    const profile = await profileRes.json();
+    const nama = profile.nama || "";
+
     if (!file || !cid || !title) {
       return res.status(400).json({ message: 'Missing file, cid, or title.' });
     }
@@ -116,6 +120,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     const timestamp = Date.now();
     await db.collection("karya_anak").doc(id_karya).set({
       cid,
+      nama,
       judul: title,
       url: publicUrl,
       id_karya,
