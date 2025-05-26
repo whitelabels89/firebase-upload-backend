@@ -6,6 +6,8 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 const { google } = require("googleapis");
+const { getFirestore } = require("firebase-admin/firestore");
+const db = getFirestore();
 
 // Tulis file kredensial lebih awal
 const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
@@ -109,6 +111,15 @@ app.post('/upload', upload.single('file'), async (req, res) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cid, title, url: publicUrl, id_karya })
+    });
+
+    const timestamp = Date.now();
+    await db.collection("karya_anak").doc(id_karya).set({
+      cid,
+      judul: title,
+      url: publicUrl,
+      id_karya,
+      timestamp
     });
     
     res.status(200).json({ message: '✅ Karya berhasil diupload!', url: publicUrl });
