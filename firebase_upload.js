@@ -1,29 +1,3 @@
-// Endpoint: ganti-password
-app.post("/ganti-password", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ success: false, message: "Data tidak lengkap." });
-    }
-
-    const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "gantiPassword",
-        username,
-        password
-      })
-    });
-
-    const result = await response.json();
-    res.json(result);
-
-  } catch (err) {
-    console.error("❌ Gagal ganti password:", err);
-    res.status(500).json({ success: false, message: "Gagal ganti password", error: err.message });
-  }
-});
 const express = require('express');
 const multer = require('multer');
 const cors = require("cors"); // ⬅️ Tambahin ini
@@ -439,6 +413,33 @@ app.get('/proxy-getprofile', async (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('🔥 Firebase Upload Server Ready');
+});
+
+// Endpoint: ganti-password
+app.post("/ganti-password", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: "Data tidak lengkap." });
+    }
+
+    const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "gantiPassword",
+        username,
+        password
+      })
+    });
+
+    const result = await response.json();
+    res.json(result);
+
+  } catch (err) {
+    console.error("❌ Gagal ganti password:", err);
+    res.status(500).json({ success: false, message: "Gagal ganti password", error: err.message });
+  }
 });
 
 app.listen(PORT, () => {
