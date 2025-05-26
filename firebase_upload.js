@@ -162,6 +162,7 @@ app.post("/update-profil", async (req, res) => {
     });
 
     const result = await response.json();
+    console.log("🔁 Result dari ganti-password:", result);
     res.json(result);
 
   } catch (err) {
