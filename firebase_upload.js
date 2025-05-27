@@ -69,14 +69,33 @@ app.get("/login", async (req, res) => {
     );
 
     if (user) {
-      // PATCH: Jika migrated TRUE, cek user di Firebase
+      // PATCH: Jika migrated TRUE, cek user di Firebase dengan password via REST API
       if (user.migrated?.toLowerCase() === "true") {
         try {
-          const firebaseUser = await admin.auth().getUserByEmail(user.email);
-          const checkPassword = password; // Password disamakan
-          // Hanya validasi struktur karena kita tidak bisa cek password di server-side Admin SDK
-          return res.json({ success: true, cid: user["cid"], migrated: true });
+          if (!user.email) {
+            return res.json({ success: false, message: "Email belum tersedia. Silakan ganti password untuk mendaftar email." });
+          }
+
+          // Verify password via Firebase Auth REST API
+          const firebaseRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: user.email,
+              password: password,
+              returnSecureToken: true
+            })
+          });
+
+          const result = await firebaseRes.json();
+
+          if (result && result.localId) {
+            return res.json({ success: true, cid: user["cid"], migrated: true });
+          } else {
+            return res.json({ success: false, message: "Email atau password salah." });
+          }
         } catch (err) {
+          console.error("❌ Firebase Auth error:", err);
           return res.json({ success: false, message: "Login Firebase gagal." });
         }
       }
