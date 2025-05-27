@@ -64,49 +64,64 @@ app.get("/login", async (req, res) => {
 
   try {
     const sheetData = await getProfileAnakData();
+    // Pencocokan user: tanpa cek password, hanya cek username (WA/email)
     const user = sheetData.find(row =>
-      (row.whatsapp.replace(/\s+/g, "") === username || row.email?.toLowerCase() === username.toLowerCase()) &&
-      row.password === password
+      row.whatsapp.replace(/\s+/g, "") === username || row.email?.toLowerCase() === username.toLowerCase()
     );
 
-    if (user) {
-      // PATCH: Jika migrated TRUE, cek user di Firebase dengan password via REST API
-      if (user.migrated?.toLowerCase() === "true") {
-        try {
-          if (!user.email) {
-            return res.json({ success: false, message: "Email belum tersedia. Silakan ganti password untuk mendaftar email." });
-          }
+    // Jika user tidak ditemukan, atau user.email tidak ada, beri pesan error spesifik
+    if (!user || !user.email) {
+      return res.json({ success: false, message: "Silakan login dengan Gmail terlebih dahulu." });
+    }
 
-          // Log API key sebelum dipakai
-          console.log("📛 Firebase API Key:", process.env.FIREBASE_API_KEY);
-          // Verify password via Firebase Auth REST API
-          const firebaseRes = await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + process.env.FIREBASE_API_KEY, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: user.email,
-              password,
-              returnSecureToken: true
-            })
-          });
-          const result = await firebaseRes.json();
-          console.log("🔐 Firebase login result:", result);
-
-          if (firebaseRes.ok && result.localId) {
-            return res.json({ success: true, cid: user["cid"], migrated: true });
-          } else {
-            return res.json({ success: false, message: result.error?.message || "Email atau password salah.", detail: result });
-          }
-        } catch (err) {
-          console.error("❌ Firebase Auth error:", err);
-          return res.json({ success: false, message: "Login Firebase gagal." });
-        }
+    // Cek apakah username input adalah email atau nomor WA
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username);
+    let emailForAuth = user.email;
+    if (!isEmail) {
+      // Username berupa nomor WA, gunakan email user untuk login Firebase Auth
+      if (!user.email) {
+        return res.json({ success: false, message: "Silakan login dengan Gmail terlebih dahulu." });
       }
+      emailForAuth = user.email;
+    }
+
+    // Jika migrated TRUE, gunakan Firebase Auth untuk login (baik input email atau WA)
+    if (user.migrated?.toLowerCase() === "true") {
+      try {
+        // Log API key sebelum dipakai
+        console.log("📛 Firebase API Key:", process.env.FIREBASE_API_KEY);
+        // Verify password via Firebase Auth REST API
+        const firebaseRes = await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + process.env.FIREBASE_API_KEY, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: emailForAuth,
+            password,
+            returnSecureToken: true
+          })
+        });
+        const result = await firebaseRes.json();
+        console.log("🔐 Firebase login result:", result);
+
+        if (firebaseRes.ok && result.localId) {
+          return res.json({ success: true, cid: user["cid"], migrated: true });
+        } else {
+          return res.json({ success: false, message: result.error?.message || "Email atau password salah.", detail: result });
+        }
+      } catch (err) {
+        console.error("❌ Firebase Auth error:", err);
+        return res.json({ success: false, message: "Login Firebase gagal." });
+      }
+    }
+
+    // Jika belum migrated, cek password lokal (hanya jika !migrated)
+    if (user.password === password) {
       const migrated = user.migrated?.toLowerCase() === "true";
       return res.json({ success: true, cid: user["cid"], migrated });
     }
 
-    res.json({ success: false });
+    // Jika password tidak cocok
+    return res.json({ success: false, message: "Email atau password salah." });
   } catch (err) {
     console.error("❌ Error login:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
