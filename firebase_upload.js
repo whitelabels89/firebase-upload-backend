@@ -435,6 +435,7 @@ app.post("/ganti-password", async (req, res) => {
     if (!cid || !email || !password) {
       return res.status(400).json({ success: false, message: "CID, email, dan password wajib diisi." });
     }
+    console.log("📥 Ganti Password Diterima:", { cid, email, password });
 
     // Cari user di Firebase Auth
     const userRecord = await admin.auth().getUserByEmail(email).catch(() => null);
@@ -468,7 +469,10 @@ app.post("/ganti-password", async (req, res) => {
     const cidIndex = headers.findIndex(h => h.toLowerCase() === "cid");
     // Cari baris berdasarkan CID
     const rowIndex = rows.findIndex((row, i) => i > 0 && row[cidIndex] === cid);
-    if (rowIndex === -1) throw new Error("CID tidak ditemukan di sheet");
+    if (rowIndex === -1) {
+      console.error("❌ Row dengan CID tidak ditemukan:", cid);
+      return res.status(404).json({ success: false, message: "CID tidak ditemukan di sheet" });
+    }
 
     // Cari kolom password, migrated, email (dan tambahkan email jika belum ada)
     const passwordCol = headers.findIndex(h => h.toLowerCase() === "password");
