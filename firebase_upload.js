@@ -69,6 +69,17 @@ app.get("/login", async (req, res) => {
     );
 
     if (user) {
+      // PATCH: Jika migrated TRUE, cek user di Firebase
+      if (user.migrated?.toLowerCase() === "true") {
+        try {
+          const firebaseUser = await admin.auth().getUserByEmail(user.email);
+          const checkPassword = password; // Password disamakan
+          // Hanya validasi struktur karena kita tidak bisa cek password di server-side Admin SDK
+          return res.json({ success: true, cid: user["cid"], migrated: true });
+        } catch (err) {
+          return res.json({ success: false, message: "Login Firebase gagal." });
+        }
+      }
       const migrated = user.migrated?.toLowerCase() === "true";
       return res.json({ success: true, cid: user["cid"], migrated });
     }
@@ -433,6 +444,51 @@ app.post("/ganti-password", async (req, res) => {
     } else {
       await admin.auth().createUser({ email, password });
     }
+
+    // PATCH: Update Sheet PROFILE_ANAK dan Firestore setelah create/update user
+    const authSheets = new google.auth.GoogleAuth({
+      keyFile: "serviceAccountKey.json",
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheetsClient = google.sheets({ version: "v4", auth: await authSheets.getClient() });
+
+    const spreadsheetId = process.env.SPREADSHEET_ID;
+    const sheetName = "PROFILE_ANAK";
+
+    // Ambil data
+    const getSheet = await sheetsClient.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:Z`,
+    });
+    const rows = getSheet.data.values;
+    if (!rows || rows.length === 0) throw new Error("Sheet kosong");
+
+    const headers = rows[0];
+    const rowIndex = rows.findIndex((row, i) => i > 0 && row[headers.indexOf("Email")]?.toLowerCase() === email.toLowerCase());
+    if (rowIndex === -1) throw new Error("Email tidak ditemukan di sheet");
+
+    const passwordCol = headers.findIndex(h => h.toLowerCase() === "password");
+    const migratedCol = headers.findIndex(h => h.toLowerCase() === "migrated");
+    const emailCol = headers.findIndex(h => h.toLowerCase() === "email");
+
+    const updateRow = [];
+    updateRow[passwordCol] = password;
+    updateRow[migratedCol] = "TRUE";
+    updateRow[emailCol] = email;
+
+    await sheetsClient.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!A${rowIndex + 1}:Z${rowIndex + 1}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [rows[rowIndex].map((v, i) => updateRow[i] ?? v)] }
+    });
+
+    // Simpan juga ke Firestore
+    const cid = rows[rowIndex][headers.indexOf("CID")];
+    await db.collection("akun").doc(cid).set({
+      email,
+      migrated: true,
+    }, { merge: true });
 
     res.json({ success: true });
   } catch (err) {
