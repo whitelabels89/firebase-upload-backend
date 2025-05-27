@@ -491,17 +491,42 @@ app.post("/ganti-password", async (req, res) => {
       });
     }
 
-    // Update baris dengan data baru
-    const updateRow = rows[rowIndex].slice();
-    if (passwordCol >= 0) updateRow[passwordCol] = password;
-    if (migratedCol >= 0) updateRow[migratedCol] = "TRUE";
-    if (emailCol >= 0) updateRow[emailCol] = email;
+    // Update kolom password, migrated, dan email menggunakan batchUpdate
+    const updates = [];
 
-    await sheetsClient.spreadsheets.values.update({
+    // Update kolom password
+    if (passwordCol >= 0) {
+      const colLetter = String.fromCharCode(65 + passwordCol);
+      updates.push({
+        range: `${sheetName}!${colLetter}${rowIndex + 1}`,
+        values: [[password]],
+      });
+    }
+
+    // Update kolom migrated
+    if (migratedCol >= 0) {
+      const colLetter = String.fromCharCode(65 + migratedCol);
+      updates.push({
+        range: `${sheetName}!${colLetter}${rowIndex + 1}`,
+        values: [["TRUE"]],
+      });
+    }
+
+    // Update kolom email
+    if (emailCol >= 0) {
+      const colLetter = String.fromCharCode(65 + emailCol);
+      updates.push({
+        range: `${sheetName}!${colLetter}${rowIndex + 1}`,
+        values: [[email]],
+      });
+    }
+
+    await sheetsClient.spreadsheets.values.batchUpdate({
       spreadsheetId,
-      range: `${sheetName}!A${rowIndex + 1}:Z${rowIndex + 1}`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values: [updateRow] }
+      requestBody: {
+        valueInputOption: "RAW",
+        data: updates,
+      },
     });
 
     // Simpan juga ke Firestore
