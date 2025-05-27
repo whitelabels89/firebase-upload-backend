@@ -77,22 +77,22 @@ app.get("/login", async (req, res) => {
           }
 
           // Verify password via Firebase Auth REST API
-          const firebaseRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`, {
+          const firebaseRes = await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + process.env.FIREBASE_API_KEY, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: user.email,
-              password: password,
+              password,
               returnSecureToken: true
             })
           });
-
           const result = await firebaseRes.json();
+          console.log("🔐 Firebase login result:", result);
 
-          if (result && result.localId) {
+          if (firebaseRes.ok && result.localId) {
             return res.json({ success: true, cid: user["cid"], migrated: true });
           } else {
-            return res.json({ success: false, message: "Email atau password salah." });
+            return res.json({ success: false, message: result.error?.message || "Email atau password salah." });
           }
         } catch (err) {
           console.error("❌ Firebase Auth error:", err);
