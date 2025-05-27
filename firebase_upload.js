@@ -461,8 +461,15 @@ app.post("/ganti-password", async (req, res) => {
 
     if (userRecord) {
       await admin.auth().updateUser(userRecord.uid, { password });
+      console.log("🔑 Password diupdate untuk user:", email);
     } else {
-      await admin.auth().createUser({ email, password });
+      try {
+        const newUser = await admin.auth().createUser({ email, password });
+        console.log("🆕 User baru dibuat di Firebase Auth:", newUser.uid);
+      } catch (createErr) {
+        console.error("❌ Gagal create user:", createErr.message);
+        return res.status(500).json({ success: false, message: "Gagal create user di Firebase Auth", error: createErr.message });
+      }
     }
 
     // PATCH: Update Sheet PROFILE_ANAK dan Firestore setelah create/update user
