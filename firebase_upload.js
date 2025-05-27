@@ -412,6 +412,7 @@ app.get('/proxy-getprofile', async (req, res) => {
   }
 });
 
+
 app.get('/', (req, res) => {
   res.send('🔥 Firebase Upload Server Ready');
 });
@@ -440,6 +441,76 @@ app.post("/ganti-password", async (req, res) => {
   } catch (err) {
     console.error("❌   :", err);
     res.status(500).json({ success: false, message: "Gagal ganti password", error: err.message });
+  }
+});
+
+// Endpoint: simpan-email ke Google Sheets dan Firestore
+app.post("/simpan-email", async (req, res) => {
+  try {
+    const { cid, email, nama } = req.body;
+    if (!cid || !email) {
+      return res.status(400).json({ success: false, message: "Missing cid or email." });
+    }
+
+    const auth = new google.auth.GoogleAuth({
+      keyFile: "serviceAccountKey.json",
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheets = google.sheets({ version: "v4", auth: await auth.getClient() });
+
+    const spreadsheetId = process.env.SPREADSHEET_ID;
+    const sheetName = "PROFILE_ANAK";
+
+    const getRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:Z`,
+    });
+
+    const rows = getRes.data.values || [];
+    if (rows.length === 0) throw new Error("Sheet kosong.");
+
+    const headers = rows[0];
+    let emailColIndex = headers.findIndex(h => h.toLowerCase() === "email");
+
+    // Tambahkan kolom Email jika belum ada
+    if (emailColIndex === -1) {
+      headers.push("Email");
+      emailColIndex = headers.length - 1;
+      rows[0] = headers;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!A1`,
+        valueInputOption: "RAW",
+        requestBody: { values: [headers] }
+      });
+    }
+
+    // Temukan baris sesuai CID
+    const cidColIndex = headers.findIndex(h => h.toLowerCase() === "cid");
+    const rowIndex = rows.findIndex((r, i) => i > 0 && r[cidColIndex] === cid);
+    if (rowIndex === -1) throw new Error("CID tidak ditemukan.");
+
+    // Update email di baris yang ditemukan
+    const updateRange = `${sheetName}!${String.fromCharCode(65 + emailColIndex)}${rowIndex + 1}`;
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: updateRange,
+      valueInputOption: "RAW",
+      requestBody: { values: [[email]] }
+    });
+
+    // Tambahkan/Update di Firestore
+    await db.collection("akun").doc(cid).set({
+      email,
+      nama,
+      role: "user"
+    }, { merge: true });
+
+    res.json({ success: true, message: "✅ Email berhasil disimpan ke Sheet & Firestore" });
+
+  } catch (err) {
+    console.error("❌ Gagal simpan email:", err);
+    res.status(500).json({ success: false, message: "❌ Gagal simpan email", error: err.message });
   }
 });
 
