@@ -431,9 +431,9 @@ app.get('/', (req, res) => {
 // Endpoint: ganti-password
 app.post("/ganti-password", async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: "Email dan password wajib diisi." });
+    const { cid, email, password } = req.body;
+    if (!cid || !email || !password) {
+      return res.status(400).json({ success: false, message: "CID, email, dan password wajib diisi." });
     }
 
     // Cari user di Firebase Auth
@@ -464,27 +464,43 @@ app.post("/ganti-password", async (req, res) => {
     if (!rows || rows.length === 0) throw new Error("Sheet kosong");
 
     const headers = rows[0];
-    const rowIndex = rows.findIndex((row, i) => i > 0 && row[headers.indexOf("Email")]?.toLowerCase() === email.toLowerCase());
-    if (rowIndex === -1) throw new Error("Email tidak ditemukan di sheet");
+    // Cari kolom CID
+    const cidIndex = headers.findIndex(h => h.toLowerCase() === "cid");
+    // Cari baris berdasarkan CID
+    const rowIndex = rows.findIndex((row, i) => i > 0 && row[cidIndex] === cid);
+    if (rowIndex === -1) throw new Error("CID tidak ditemukan di sheet");
 
+    // Cari kolom password, migrated, email (dan tambahkan email jika belum ada)
     const passwordCol = headers.findIndex(h => h.toLowerCase() === "password");
     const migratedCol = headers.findIndex(h => h.toLowerCase() === "migrated");
-    const emailCol = headers.findIndex(h => h.toLowerCase() === "email");
+    let emailCol = headers.findIndex(h => h.toLowerCase() === "email");
 
-    const updateRow = [];
-    updateRow[passwordCol] = password;
-    updateRow[migratedCol] = "TRUE";
-    updateRow[emailCol] = email;
+    if (emailCol === -1) {
+      headers.push("Email");
+      emailCol = headers.length - 1;
+      rows[0] = headers;
+      await sheetsClient.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!A1`,
+        valueInputOption: "RAW",
+        requestBody: { values: [headers] }
+      });
+    }
+
+    // Update baris dengan data baru
+    const updateRow = rows[rowIndex].slice();
+    if (passwordCol >= 0) updateRow[passwordCol] = password;
+    if (migratedCol >= 0) updateRow[migratedCol] = "TRUE";
+    if (emailCol >= 0) updateRow[emailCol] = email;
 
     await sheetsClient.spreadsheets.values.update({
       spreadsheetId,
       range: `${sheetName}!A${rowIndex + 1}:Z${rowIndex + 1}`,
       valueInputOption: "USER_ENTERED",
-      requestBody: { values: [rows[rowIndex].map((v, i) => updateRow[i] ?? v)] }
+      requestBody: { values: [updateRow] }
     });
 
     // Simpan juga ke Firestore
-    const cid = rows[rowIndex][headers.indexOf("CID")];
     await db.collection("akun").doc(cid).set({
       email,
       migrated: true,
