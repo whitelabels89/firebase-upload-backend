@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const express = require('express');
 const multer = require('multer');
 const cors = require("cors"); // ⬅️ Tambahin ini
@@ -76,6 +77,8 @@ app.get("/login", async (req, res) => {
             return res.json({ success: false, message: "Email belum tersedia. Silakan ganti password untuk mendaftar email." });
           }
 
+          // Log API key sebelum dipakai
+          console.log("📛 Firebase API Key:", process.env.FIREBASE_API_KEY);
           // Verify password via Firebase Auth REST API
           const firebaseRes = await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + process.env.FIREBASE_API_KEY, {
             method: "POST",
@@ -92,7 +95,7 @@ app.get("/login", async (req, res) => {
           if (firebaseRes.ok && result.localId) {
             return res.json({ success: true, cid: user["cid"], migrated: true });
           } else {
-            return res.json({ success: false, message: result.error?.message || "Email atau password salah." });
+            return res.json({ success: false, message: result.error?.message || "Email atau password salah.", detail: result });
           }
         } catch (err) {
           console.error("❌ Firebase Auth error:", err);
