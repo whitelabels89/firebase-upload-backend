@@ -420,27 +420,24 @@ app.get('/', (req, res) => {
 // Endpoint: ganti-password
 app.post("/ganti-password", async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ success: false, message: "Data tidak lengkap." });
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email dan password wajib diisi." });
     }
 
-    const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "gantiPassword",
-        username,
-        password
-      })
-    });
+    // Cari user di Firebase Auth
+    const userRecord = await admin.auth().getUserByEmail(email).catch(() => null);
 
-    const result = await response.json();
-    res.json(result);
+    if (userRecord) {
+      await admin.auth().updateUser(userRecord.uid, { password });
+    } else {
+      await admin.auth().createUser({ email, password });
+    }
 
+    res.json({ success: true });
   } catch (err) {
-    console.error("❌   :", err);
-    res.status(500).json({ success: false, message: "Gagal ganti password", error: err.message });
+    console.error("❌ Gagal proses ganti password:", err);
+    res.status(500).json({ success: false, message: "Internal error", error: err.message });
   }
 });
 
