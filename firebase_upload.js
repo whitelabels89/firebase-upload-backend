@@ -65,7 +65,7 @@ app.get("/login", async (req, res) => {
   try {
     const sheetData = await getProfileAnakData();
     const user = sheetData.find(row =>
-      row.whatsapp.replace(/\s+/g, "") === username &&
+      (row.whatsapp.replace(/\s+/g, "") === username || row.email?.toLowerCase() === username.toLowerCase()) &&
       row.password === password
     );
 
