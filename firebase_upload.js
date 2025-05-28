@@ -666,3 +666,23 @@ app.post("/simpan-email", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+// Endpoint: Ambil CID berdasarkan nomor WhatsApp
+app.get('/proxy-get-cid-by-wa', async (req, res) => {
+  const { wa } = req.query;
+  if (!wa) return res.status(400).json({ error: "Missing wa" });
+  try {
+    // Cari dokumen akun dengan field wa = nomor wa
+    const snapshot = await db.collection("akun").where("wa", "==", wa).limit(1).get();
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      const cid = doc.id;
+      res.json({ cid });
+    } else {
+      res.json({ cid: null });
+    }
+  } catch (err) {
+    console.error("❌ Gagal mengambil CID dari WA:", err);
+    res.status(500).json({ error: "Gagal mengambil CID dari WA", detail: err.message });
+  }
+});
