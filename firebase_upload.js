@@ -496,11 +496,12 @@ async function ensureEmailPasswordUser(email, password) {
 // Endpoint: ganti-password
 app.post("/ganti-password", async (req, res) => {
   try {
-    const { cid, email, password: newPassword } = req.body;
-    if (!cid || !email || !newPassword) {
+    const { cid, email, password, newPassword } = req.body;
+    const finalPassword = newPassword || password;
+    if (!cid || !email || !finalPassword) {
       return res.status(400).json({ success: false, message: "CID, email, dan password wajib diisi." });
     }
-    console.log("📥 Ganti Password Diterima:", { cid, email, password: newPassword });
+    console.log("📥 Ganti Password Diterima:", { cid, email, password: finalPassword });
 
     // PATCH: Update Sheet PROFILE_ANAK dan Firestore terlebih dahulu agar hybrid login aktif
     const authSheets = new google.auth.GoogleAuth({
@@ -555,7 +556,7 @@ app.post("/ganti-password", async (req, res) => {
       const colLetter = String.fromCharCode(65 + passwordCol);
       updates.push({
         range: `${sheetName}!${colLetter}${rowIndex + 1}`,
-        values: [[newPassword]],
+        values: [[finalPassword]],
       });
     }
 
@@ -592,7 +593,7 @@ app.post("/ganti-password", async (req, res) => {
     }, { merge: true });
 
     // Setelah Sheet/Firestore, update password resmi via Firebase Admin SDK
-    await ensureEmailPasswordUser(email, newPassword);
+    await ensureEmailPasswordUser(email, finalPassword);
 
     res.json({ success: true });
   } catch (err) {
