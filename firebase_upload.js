@@ -691,6 +691,10 @@ app.get('/proxy-get-cid-by-wa', async (req, res) => {
 async function loginWithGoogle() {
   try {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      hd: "queensacademy.id",
+      continueUrl: "https://queensacademy.id/dashboard.html"
+    });
     const result = await signInWithPopup(auth, provider);
     const email = result.user.email;
 
