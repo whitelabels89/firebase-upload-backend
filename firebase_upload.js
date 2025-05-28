@@ -58,30 +58,34 @@ async function getProfileAnakData() {
   });
 }
 
-// Endpoint: login manual, menerima identifier (email atau nomor WA) dan password
+// Endpoint: login manual, menerima identifier (email atau nomor WA) dan password (HYBRID fallback)
 const axios = require('axios');
 app.post("/login", async (req, res) => {
   const { identifier, password } = req.body;
   console.log("📲 Login request by:", identifier);
-  let loginEmail = identifier;
   try {
-    // Deteksi jika identifier berupa nomor WA (semua digit)
-    if (/^\d+$/.test(identifier)) {
-      // Cari email yang cocok dari Firestore (kol. wa)
+    const isEmail = identifier.includes("@");
+    let loginEmail = identifier;
+
+    if (!isEmail) {
       const snapshot = await db.collection("akun").where("wa", "==", identifier).limit(1).get();
       if (!snapshot.empty) {
         loginEmail = snapshot.docs[0].data().email;
-        console.log("🔍 Resolved email:", loginEmail);
+        console.log("🔍 Resolved email from WA:", loginEmail);
       } else {
         return res.status(400).json({ error: "Nomor WA tidak ditemukan" });
       }
     } else {
-      console.log("🔍 Resolved email:", loginEmail);
+      const snapshot = await db.collection("akun").where("email", "==", identifier.toLowerCase()).limit(1).get();
+      if (!snapshot.empty) {
+        loginEmail = snapshot.docs[0].data().email;
+        console.log("🔍 Resolved email direct:", loginEmail);
+      } else {
+        return res.status(400).json({ error: "Email tidak ditemukan di database" });
+      }
     }
-    // Lakukan login ke Firebase Auth REST API
-    const firebaseConfig = {
-      apiKey: process.env.FIREBASE_API_KEY
-    };
+
+    const firebaseConfig = { apiKey: process.env.FIREBASE_API_KEY };
     const loginRes = await axios.post(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseConfig.apiKey}`,
       {
@@ -95,6 +99,7 @@ app.post("/login", async (req, res) => {
       }
       throw err;
     });
+
     if (loginRes.data && loginRes.data.idToken) {
       res.status(200).json({ success: true, token: loginRes.data.idToken });
     } else {
