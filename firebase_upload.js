@@ -18,7 +18,8 @@ const serviceAccount = require("./serviceAccountKey.json");
 // Init Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'socmed-karya-anak.firebasestorage.app'
+  storageBucket: 'queens-academy-icoding.appspot.com',
+  projectId: 'queens-academy-icoding'
 });
 
 const db = admin.firestore();
@@ -33,7 +34,7 @@ app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 // Ambil data dari Google Sheets PROFILE_ANAK
 async function getProfileAnakData() {
   const auth = new google.auth.GoogleAuth({
-    keyFile: "serviceAccountKey.json", // ⬅️ INI YANG BELUM ADA
+    keyFile: "serviceAccountKey.json", 
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
   const client = await auth.getClient();
@@ -85,7 +86,15 @@ app.post("/login", async (req, res) => {
       }
     }
 
-    const firebaseConfig = { apiKey: process.env.FIREBASE_API_KEY };
+    const firebaseConfig = {
+      apiKey: "AIzaSyBVO4ajDwkbcTGL33SVMxIoev4veB8itgI",
+      authDomain: "queens-academy-icoding.firebaseapp.com",
+      projectId: "queens-academy-icoding",
+      storageBucket: "queens-academy-icoding.firebasestorage.app",
+      messagingSenderId: "1048549258959",
+      appId: "1:1048549258959:web:f8dc1c104bb170d7ff69ba",
+      measurementId: "G-RJCXM1YL7E"
+    };
     const loginRes = await axios.post(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseConfig.apiKey}`,
       {
