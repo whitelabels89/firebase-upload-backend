@@ -468,29 +468,13 @@ app.get('/', (req, res) => {
 // Endpoint: ganti-password
 app.post("/ganti-password", async (req, res) => {
   try {
-    const { cid, email, password } = req.body;
-    if (!cid || !email || !password) {
+    const { cid, email, password: newPassword } = req.body;
+    if (!cid || !email || !newPassword) {
       return res.status(400).json({ success: false, message: "CID, email, dan password wajib diisi." });
     }
-    console.log("📥 Ganti Password Diterima:", { cid, email, password });
+    console.log("📥 Ganti Password Diterima:", { cid, email, password: newPassword });
 
-    // Cari user di Firebase Auth
-    const userRecord = await admin.auth().getUserByEmail(email).catch(() => null);
-
-    if (userRecord) {
-      await admin.auth().updateUser(userRecord.uid, { password });
-      console.log("🔑 Password diupdate untuk user:", email);
-    } else {
-      try {
-        const newUser = await admin.auth().createUser({ email, password });
-        console.log("🆕 User baru dibuat di Firebase Auth:", newUser.uid);
-      } catch (createErr) {
-        console.error("❌ Gagal create user:", createErr.message);
-        return res.status(500).json({ success: false, message: "Gagal create user di Firebase Auth", error: createErr.message });
-      }
-    }
-
-    // PATCH: Update Sheet PROFILE_ANAK dan Firestore setelah create/update user
+    // PATCH: Update Sheet PROFILE_ANAK dan Firestore terlebih dahulu agar hybrid login aktif
     const authSheets = new google.auth.GoogleAuth({
       keyFile: "serviceAccountKey.json",
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -543,7 +527,7 @@ app.post("/ganti-password", async (req, res) => {
       const colLetter = String.fromCharCode(65 + passwordCol);
       updates.push({
         range: `${sheetName}!${colLetter}${rowIndex + 1}`,
-        values: [[password]],
+        values: [[newPassword]],
       });
     }
 
@@ -578,6 +562,18 @@ app.post("/ganti-password", async (req, res) => {
       email,
       migrated: true,
     }, { merge: true });
+
+    // Setelah Sheet/Firestore, update password resmi via Firebase Admin SDK
+    try {
+      // Dapatkan user by email
+      const userRecord = await admin.auth().getUserByEmail(email);
+      // Update password via Admin SDK
+      await admin.auth().updateUser(userRecord.uid, { password: newPassword });
+      console.log("✅ Password berhasil diupdate di Firebase Auth");
+    } catch (err) {
+      console.error("❌ Gagal update password di Firebase Auth:", err);
+      return res.status(500).json({ success: false, message: "Gagal update password di Firebase Auth" });
+    }
 
     res.json({ success: true });
   } catch (err) {
