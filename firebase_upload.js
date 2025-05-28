@@ -686,3 +686,45 @@ app.get('/proxy-get-cid-by-wa', async (req, res) => {
     res.status(500).json({ error: "Gagal mengambil CID dari WA", detail: err.message });
   }
 });
+// --- Tambahan untuk loginWithGoogleAndLinkOldAccount (frontend, bukan backend) ---
+// Catatan: Fungsi di bawah ini adalah untuk frontend (React/JS), bukan Node.js backend.
+// Jika ingin dipakai di backend, butuh setup firebase SDK untuk Node.js dan OAuth flow yang berbeda.
+// Contoh implementasi frontend:
+/*
+import firebase from "firebase/app";
+import "firebase/auth";
+
+export async function loginWithGoogleAndLinkOldAccount(oldPassword) {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const result = await firebase.auth().signInWithPopup(provider);
+  const user = result.user;
+  const email = user.email;
+
+  // Fetch profile dari backend untuk cek apakah email sudah terdaftar
+  const res = await fetch(`https://firebase-upload-backend.onrender.com/proxy-getprofile?email=${email}`);
+  const data = await res.json();
+
+  if (data.found && !data.migrated) {
+    try {
+      const credential = firebase.auth.EmailAuthProvider.credential(email, oldPassword);
+      await user.linkWithCredential(credential);
+
+      // Update flag Migrated di sheet
+      await fetch("https://firebase-upload-backend.onrender.com/proxy-update-migrated", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, migrated: true })
+      });
+
+      console.log("✅ Akun berhasil di-link ke Google.");
+      return { success: true, user };
+    } catch (err) {
+      console.error("❌ Gagal link akun manual ke Google:", err);
+      return { success: false, error: err };
+    }
+  } else {
+    console.log("🔁 Akun sudah migrated atau tidak ditemukan, login saja.");
+    return { success: true, user };
+  }
+}
+*/
