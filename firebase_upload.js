@@ -443,6 +443,25 @@ app.get('/', (req, res) => {
   res.send('🔥 Firebase Upload Server Ready');
 });
 
+// Fungsi: Membuat atau update user email/password di Firebase Auth
+const { getAuth } = require("firebase-admin/auth");
+async function ensureEmailPasswordUser(email, password) {
+  const auth = getAuth();
+  try {
+    const user = await auth.getUserByEmail(email);
+    await auth.updateUser(user.uid, { password });
+    console.log(`🔐 Updated password for existing user ${email}`);
+  } catch (err) {
+    if (err.code === 'auth/user-not-found') {
+      await auth.createUser({ email, password });
+      console.log(`🆕 Created new user with email ${email}`);
+    } else {
+      console.error('❌ Firebase Admin Error:', err);
+      throw err;
+    }
+  }
+}
+
 // Endpoint: ganti-password
 app.post("/ganti-password", async (req, res) => {
   try {
@@ -542,16 +561,7 @@ app.post("/ganti-password", async (req, res) => {
     }, { merge: true });
 
     // Setelah Sheet/Firestore, update password resmi via Firebase Admin SDK
-    try {
-      // Dapatkan user by email
-      const userRecord = await admin.auth().getUserByEmail(email);
-      // Update password via Admin SDK
-      await admin.auth().updateUser(userRecord.uid, { password: newPassword });
-      console.log("✅ Password berhasil diupdate di Firebase Auth");
-    } catch (err) {
-      console.error("❌ Gagal update password di Firebase Auth:", err);
-      return res.status(500).json({ success: false, message: "Gagal update password di Firebase Auth" });
-    }
+    await ensureEmailPasswordUser(email, newPassword);
 
     res.json({ success: true });
   } catch (err) {
