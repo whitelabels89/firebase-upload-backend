@@ -438,6 +438,24 @@ app.get('/proxy-getprofile', async (req, res) => {
   }
 });
 
+// Proxy untuk login ke Google Apps Script (validasi via Sheets)
+app.post("/proxy-login-sheet", async (req, res) => {
+  try {
+    const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...req.body, action: "loginSheet" }),
+    });
+
+    const result = await response.json();
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Proxy login sheet error:", err);
+    res.status(500).json({ error: "Proxy gagal", detail: err.message });
+  }
+});
+
 
 app.get('/', (req, res) => {
   res.send('🔥 Firebase Upload Server Ready');
