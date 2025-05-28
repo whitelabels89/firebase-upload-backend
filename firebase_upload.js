@@ -18,8 +18,7 @@ const serviceAccount = require("./serviceAccountKey.json");
 // Init Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'queens-academy-icoding.appspot.com',
-  projectId: 'queens-academy-icoding'
+  storageBucket: 'queens-academy-icoding.appspot.com'
 });
 
 const db = admin.firestore();
