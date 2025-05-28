@@ -686,45 +686,35 @@ app.get('/proxy-get-cid-by-wa', async (req, res) => {
     res.status(500).json({ error: "Gagal mengambil CID dari WA", detail: err.message });
   }
 });
-// --- Tambahan untuk loginWithGoogleAndLinkOldAccount (frontend, bukan backend) ---
-// Catatan: Fungsi di bawah ini adalah untuk frontend (React/JS), bukan Node.js backend.
-// Jika ingin dipakai di backend, butuh setup firebase SDK untuk Node.js dan OAuth flow yang berbeda.
-// Contoh implementasi frontend:
-/*
-import firebase from "firebase/app";
-import "firebase/auth";
+// --- Fungsi loginWithGoogle (frontend, bukan backend) ---
+// Ganti seluruh isi fungsi loginWithGoogle sesuai permintaan:
+async function loginWithGoogle() {
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const email = result.user.email;
 
-export async function loginWithGoogleAndLinkOldAccount(oldPassword) {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  const result = await firebase.auth().signInWithPopup(provider);
-  const user = result.user;
-  const email = user.email;
+    const wa = localStorage.getItem("wa_migrated") || "";
+    const password = localStorage.getItem("pass_migrated") || "";
 
-  // Fetch profile dari backend untuk cek apakah email sudah terdaftar
-  const res = await fetch(`https://firebase-upload-backend.onrender.com/proxy-getprofile?email=${email}`);
-  const data = await res.json();
+    const res = await fetch(`${BACKEND_URL}/proxy-login-gmail`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, wa, password }),
+    });
 
-  if (data.found && !data.migrated) {
-    try {
-      const credential = firebase.auth.EmailAuthProvider.credential(email, oldPassword);
-      await user.linkWithCredential(credential);
+    const text = await res.text();
+    console.log("🧪 Raw response from Gmail login:", text);
+    const data = JSON.parse(text);
 
-      // Update flag Migrated di sheet
-      await fetch("https://firebase-upload-backend.onrender.com/proxy-update-migrated", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, migrated: true })
-      });
-
-      console.log("✅ Akun berhasil di-link ke Google.");
-      return { success: true, user };
-    } catch (err) {
-      console.error("❌ Gagal link akun manual ke Google:", err);
-      return { success: false, error: err };
+    if (data && data.cid) {
+      localStorage.setItem("cid_login", data.cid);
+      window.location.href = `/dashboard.html?cid=${data.cid}`;
+    } else {
+      throw new Error("CID tidak ditemukan dalam response");
     }
-  } else {
-    console.log("🔁 Akun sudah migrated atau tidak ditemukan, login saja.");
-    return { success: true, user };
+  } catch (err) {
+    console.error("❌ Login Gmail gagal:", err);
+    alert("Gagal login dengan Gmail. Silakan coba lagi.");
   }
 }
-*/
