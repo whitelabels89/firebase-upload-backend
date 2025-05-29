@@ -481,8 +481,8 @@ app.get("/proxy-check-email-sheet", async (req, res) => {
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     });
     const sheetsClient = google.sheets({ version: "v4", auth: await authSheets.getClient() });
-    const spreadsheetId = process.env.SPREADSHEET_ID || "YOUR_SHEET_ID";
-    const range = "Sheet1!A:A";
+    const spreadsheetId = process.env.SPREADSHEET_ID || "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY";
+    const range = "PROFILE_ANAK!G:G";
 
     const sheetRes = await sheetsClient.spreadsheets.values.get({
       spreadsheetId,
