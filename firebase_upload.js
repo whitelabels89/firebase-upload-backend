@@ -401,7 +401,12 @@ app.get("/proxy-follower", async (req, res) => {
   try {
     const response = await fetch(url);
     const text = await response.text();
-
+    // Handle explicit "CID not found" from Apps Script
+    if (text.trim() === "CID not found") {
+      console.error("⚠️ Apps Script FOLLOWER returned CID not found");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return res.status(404).json({ error: "CID not found" });
+    }
     if (!text.trim().startsWith("{") && !text.trim().startsWith("[")) {
       console.error("❌ Invalid response from GAS (FOLLOWER):", text.slice(0, 100));
       return res.status(500).json({ error: "Invalid response from Google Apps Script", preview: text.slice(0, 100) });
@@ -425,7 +430,12 @@ app.get('/proxy-getprofile', async (req, res) => {
   try {
     const response = await fetch(url);
     const text = await response.text();
-
+    // Handle explicit "CID not found" from Apps Script
+    if (text.trim() === "CID not found") {
+      console.error("⚠️ Apps Script PROFILE returned CID not found");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      return res.status(404).json({ error: "CID not found" });
+    }
     if (!text.trim().startsWith("{") && !text.trim().startsWith("[")) {
       console.error("❌ Invalid response from GAS (PROFILE):", text.slice(0, 100));
       return res.status(500).json({ error: "Invalid response from Google Apps Script", preview: text.slice(0, 100) });
@@ -482,17 +492,26 @@ app.get("/proxy-check-email-sheet", async (req, res) => {
     });
     const sheetsClient = google.sheets({ version: "v4", auth: await authSheets.getClient() });
     const spreadsheetId = process.env.SPREADSHEET_ID || "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY";
-    const range = "PROFILE_ANAK!G:G";
+    const sheetName = "PROFILE_ANAK";
 
-    const sheetRes = await sheetsClient.spreadsheets.values.get({
+    // Fetch all rows
+    const response = await sheetsClient.spreadsheets.values.get({
       spreadsheetId,
-      range,
+      range: `${sheetName}!A2:H`,
     });
-    const emails = (sheetRes.data.values || []).flat();
-    const exists = emails.includes(email);
+
+    const rows = response.data.values || [];
+
+    const matchedRow = rows.find(row => (row[6] || "").toLowerCase() === email.toLowerCase());
+    if (!matchedRow) {
+      return res.json({ exists: false });
+    }
+
+    const cid = matchedRow[0]; // kolom A = CID
+    const migrated = matchedRow[7] === "TRUE"; // kolom H = Migrated
 
     res.setHeader("Access-Control-Allow-Origin", "*");
-    return res.json({ exists });
+    return res.json({ exists: true, cid, migrated });
   } catch (err) {
     console.error("❌ Error di /proxy-check-email-sheet:", err);
     return res.status(500).json({ error: err.message });
