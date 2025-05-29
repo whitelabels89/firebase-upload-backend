@@ -806,16 +806,6 @@ app.get('/proxy-get-cid-by-wa', async (req, res) => {
   }
 });
 
-// --- PATCH: Fallback for syncGuruUIDFromFirebase() manual UID entry instruction ---
-// This is not an endpoint, but the following code block can be used in Apps Script to guide manual UID pasting.
-// Place this inside syncGuruUIDFromFirebase() after verifying header columns exist:
-/*
-emails.forEach((email, i) => {
-  const rowIdx = i + 1;
-  Logger.log(`📝 Manual action required: Please get UID for ${email} from Firebase Console and paste it into the UID column (row ${rowIdx + 1})`);
-});
-Logger.log('✅ UID sync instruction logging completed');
-*/
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
 // Updated implementation:
 async function loginWithGoogle() {
