@@ -498,6 +498,48 @@ app.get("/proxy-check-email-sheet", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+// Proxy endpoint: Update 'Migrated' flag in Google Sheet
+app.post("/proxy-update-migrated", async (req, res) => {
+  const { email, migrated } = req.body;
+  if (!email || typeof migrated !== "boolean") {
+    return res.status(400).json({ error: "Invalid payload: email and migrated flag required" });
+  }
+  try {
+    const authSheets = new google.auth.GoogleAuth({
+      keyFile: "serviceAccountKey.json",
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheetsClient = google.sheets({ version: "v4", auth: await authSheets.getClient() });
+    const spreadsheetId = process.env.SPREADSHEET_ID || "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY";
+    const sheetName = "PROFILE_ANAK";
+
+    // Read Email column (G)
+    const readRes = await sheetsClient.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!G:G`,
+    });
+    const rows = readRes.data.values || [];
+    const rowIndex = rows.findIndex(r => r[0] === email);
+    if (rowIndex < 1) {
+      return res.status(404).json({ error: "Email not found in sheet" });
+    }
+
+    // Update 'Migrated' column (column H)
+    const targetCell = `${sheetName}!H${rowIndex + 1}`;
+    await sheetsClient.spreadsheets.values.update({
+      spreadsheetId,
+      range: targetCell,
+      valueInputOption: "RAW",
+      requestBody: { values: [[ migrated ? "TRUE" : "FALSE" ]] }
+    });
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error in /proxy-update-migrated:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 app.get('/', (req, res) => {
