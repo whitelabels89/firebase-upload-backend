@@ -788,11 +788,12 @@ async function loginWithGoogle() {
       throw new Error(`HTTP ${response.status} during loginSheet`);
     }
     const data = await response.json();
-
-    if (data && data.cid) {
-      localStorage.setItem("cid_login", data.cid);
+    // Normalize field name from backend
+    const userCID = data.cid || data.CID;
+    if (userCID) {
+      localStorage.setItem("cid_login", userCID);
       // Redirect to dashboard with cid parameter
-      window.location.href = `/dashboard.html?cid=${data.cid}`;
+      window.location.href = `/dashboard.html?cid=${userCID}`;
     } else {
       throw new Error("CID tidak ditemukan dalam response");
     }
