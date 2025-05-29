@@ -452,6 +452,7 @@ app.get('/proxy-getprofile', async (req, res) => {
 });
 
 // Proxy untuk login ke Google Apps Script (validasi via Sheets)
+
 app.post("/proxy-login-sheet", async (req, res) => {
   try {
     const response = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
@@ -466,6 +467,35 @@ app.post("/proxy-login-sheet", async (req, res) => {
   } catch (err) {
     console.error("❌ Proxy login sheet error:", err);
     res.status(500).json({ error: "Proxy gagal", detail: err.message });
+  }
+});
+
+// Proxy endpoint: Cek apakah email terdaftar di Google Sheet
+app.get("/proxy-check-email-sheet", async (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: "Missing email query parameter" });
+
+  try {
+    const authSheets = new google.auth.GoogleAuth({
+      keyFile: "serviceAccountKey.json",
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheetsClient = google.sheets({ version: "v4", auth: await authSheets.getClient() });
+    const spreadsheetId = process.env.SPREADSHEET_ID || "YOUR_SHEET_ID";
+    const range = "Sheet1!A:A";
+
+    const sheetRes = await sheetsClient.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+    const emails = (sheetRes.data.values || []).flat();
+    const exists = emails.includes(email);
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    return res.json({ exists });
+  } catch (err) {
+    console.error("❌ Error di /proxy-check-email-sheet:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -496,12 +526,11 @@ async function ensureEmailPasswordUser(email, password) {
 // Endpoint: ganti-password
 app.post("/ganti-password", async (req, res) => {
   try {
-    const { cid, email, password, newPassword } = req.body;
-    const finalPassword = newPassword || password;
-    if (!cid || !email || !finalPassword) {
+    const { cid, email, password: newPassword } = req.body;
+    if (!cid || !email || !newPassword) {
       return res.status(400).json({ success: false, message: "CID, email, dan password wajib diisi." });
     }
-    console.log("📥 Ganti Password Diterima:", { cid, email, password: finalPassword });
+    console.log("📥 Ganti Password Diterima:", { cid, email, password: newPassword });
 
     // PATCH: Update Sheet PROFILE_ANAK dan Firestore terlebih dahulu agar hybrid login aktif
     const authSheets = new google.auth.GoogleAuth({
@@ -556,7 +585,7 @@ app.post("/ganti-password", async (req, res) => {
       const colLetter = String.fromCharCode(65 + passwordCol);
       updates.push({
         range: `${sheetName}!${colLetter}${rowIndex + 1}`,
-        values: [[finalPassword]],
+        values: [[newPassword]],
       });
     }
 
@@ -593,7 +622,7 @@ app.post("/ganti-password", async (req, res) => {
     }, { merge: true });
 
     // Setelah Sheet/Firestore, update password resmi via Firebase Admin SDK
-    await ensureEmailPasswordUser(email, finalPassword);
+    await ensureEmailPasswordUser(email, newPassword);
 
     res.json({ success: true });
   } catch (err) {
