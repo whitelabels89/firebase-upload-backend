@@ -767,7 +767,7 @@ app.get('/proxy-get-cid-by-wa', async (req, res) => {
   }
 });
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
-// Ganti seluruh isi fungsi loginWithGoogle sesuai permintaan:
+// Updated implementation:
 async function loginWithGoogle() {
   try {
     const provider = new GoogleAuthProvider();
@@ -778,21 +778,20 @@ async function loginWithGoogle() {
     const result = await signInWithPopup(auth, provider);
     const email = result.user.email;
 
-    const wa = localStorage.getItem("wa_migrated") || "";
-    const password = localStorage.getItem("pass_migrated") || "";
-
-    const res = await fetch(`${BACKEND_URL}/proxy-login-gmail`, {
+    // Call the existing proxy-login-sheet endpoint
+    const response = await fetch(`${BACKEND_URL}/proxy-login-sheet`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, wa, password }),
+      body: JSON.stringify({ email }),
     });
-
-    const text = await res.text();
-    console.log("🧪 Raw response from Gmail login:", text);
-    const data = JSON.parse(text);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} during loginSheet`);
+    }
+    const data = await response.json();
 
     if (data && data.cid) {
       localStorage.setItem("cid_login", data.cid);
+      // Redirect to dashboard with cid parameter
       window.location.href = `/dashboard.html?cid=${data.cid}`;
     } else {
       throw new Error("CID tidak ditemukan dalam response");
