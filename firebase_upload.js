@@ -4,6 +4,7 @@ const multer = require('multer');
 const cors = require("cors"); // ⬅️ Tambahin ini
 const { Storage } = require("@google-cloud/storage");
 const admin = require('firebase-admin');
+const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 const fs = require('fs');
 const path = require('path');
 const { google } = require("googleapis");
@@ -766,6 +767,25 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
+// Endpoint: Admin get-users (protected by FIREBASE_API_KEY)
+app.get("/admin/get-users", async (req, res) => {
+  const apiKey = req.headers["x-api-key"];
+  if (apiKey !== FIREBASE_API_KEY) {
+    return res.status(403).json({ status: "unauthorized" });
+  }
+
+  try {
+    const listUsers = await admin.auth().listUsers();
+    const users = listUsers.users.map(userRecord => ({
+      uid: userRecord.uid,
+      email: userRecord.email
+    }));
+    res.json({ status: "success", users });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+});
+
 // Endpoint: Ambil CID berdasarkan nomor WhatsApp
 app.get('/proxy-get-cid-by-wa', async (req, res) => {
   const { wa } = req.query;
@@ -785,6 +805,17 @@ app.get('/proxy-get-cid-by-wa', async (req, res) => {
     res.status(500).json({ error: "Gagal mengambil CID dari WA", detail: err.message });
   }
 });
+
+// --- PATCH: Fallback for syncGuruUIDFromFirebase() manual UID entry instruction ---
+// This is not an endpoint, but the following code block can be used in Apps Script to guide manual UID pasting.
+// Place this inside syncGuruUIDFromFirebase() after verifying header columns exist:
+/*
+emails.forEach((email, i) => {
+  const rowIdx = i + 1;
+  Logger.log(`📝 Manual action required: Please get UID for ${email} from Firebase Console and paste it into the UID column (row ${rowIdx + 1})`);
+});
+Logger.log('✅ UID sync instruction logging completed');
+*/
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
 // Updated implementation:
 async function loginWithGoogle() {
