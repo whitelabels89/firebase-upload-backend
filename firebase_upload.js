@@ -21,59 +21,6 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: 'queens-academy-icoding.firebasestorage.app'
 });
-// --- Google Sheets API for QA E-LEARNING SYSTEM ---
-const sheets = google.sheets('v4');
-const sheetsAuth = new google.auth.GoogleAuth({
-  keyFile: "serviceAccountKey.json",
-  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-});
-const spreadsheetIdElearning = process.env.ELEARNING_SPREADSHEET_ID || 'ID_SPREADSHEET_ELEARNING'; // ganti dengan ID yang benar
-
-/**
- * Ambil profil user berdasarkan UID dari spreadsheet QA E-LEARNING SYSTEM
- * @param {string} uid
- * @returns {Promise<{uid: string, name: string, email: string, role: string, cid: string}|null>}
- */
-async function getUserProfileByUID(uid) {
-  const client = await sheetsAuth.getClient();
-  const res = await sheets.spreadsheets.values.get({
-    auth: client,
-    spreadsheetId: spreadsheetIdElearning,
-    range: 'EL_MASTER_USER!A2:E', // kolom: UID | Nama | Email | Role | CID
-  });
-
-  const rows = res.data.values;
-  if (rows && rows.length) {
-    const match = rows.find(row => row[0] === uid);
-    if (match) {
-      return {
-        uid: match[0],
-        name: match[1],
-        email: match[2],
-        role: match[3],
-        cid: match[4],
-      };
-    }
-  }
-  return null;
-}
-
-// Endpoint baru: /api/getProfile?uid=...
-app.get('/api/getProfile', async (req, res) => {
-  const uid = req.query.uid;
-  if (!uid) return res.status(400).json({ error: 'Missing UID' });
-  try {
-    const profile = await getUserProfileByUID(uid);
-    if (profile) {
-      res.status(200).json(profile);
-    } else {
-      res.status(404).json({ error: 'User not found' });
-    }
-  } catch (err) {
-    console.error('Error fetching profile:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
 
 const db = admin.firestore();
 
