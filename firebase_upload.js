@@ -37,12 +37,8 @@ const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
 const serviceAccountKey = JSON.parse(
   Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf8')
 );
-// Patch: useServiceAccountAuth expects { client_email, private_key }
 (async () => {
-  await doc.useServiceAccountAuth({
-    client_email: serviceAccountKey.client_email,
-    private_key: serviceAccountKey.private_key,
-  });
+  await doc.useServiceAccountAuth(serviceAccountKey);
   await doc.loadInfo();
 
   // Endpoint: Get Profile by UID from EL_MASTER_USER
