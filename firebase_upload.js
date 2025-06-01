@@ -34,11 +34,12 @@ app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 // --- Google Sheets API setup for /api/getProfile ---
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
-const serviceAccountKey = JSON.parse(
-  Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf8')
-);
 (async () => {
-  await doc.useServiceAccountAuth(serviceAccountKey);
+  // Ensure this matches exactly as required:
+  await doc.useServiceAccountAuth({
+    client_email: process.env.SERVICE_ACCOUNT_CLIENT_EMAIL,
+    private_key: process.env.SERVICE_ACCOUNT_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  });
   await doc.loadInfo();
 
   // Endpoint: Get Profile by UID from EL_MASTER_USER
