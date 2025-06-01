@@ -39,12 +39,11 @@ const serviceAccountKey = JSON.parse(
 const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
 // Patch: useServiceAccountAuth expects { client_email, private_key }
 (async () => {
-  // Log google-spreadsheet version for debugging
-  console.log("📦 google-spreadsheet version:", require('google-spreadsheet/package.json').version);
   await doc.useServiceAccountAuth({
     client_email: serviceAccountKey.client_email,
     private_key: serviceAccountKey.private_key,
   });
+  console.log("✅ Google Spreadsheet authentication success");
   await doc.loadInfo();
 
   // Endpoint: Get Profile by UID from EL_MASTER_USER
