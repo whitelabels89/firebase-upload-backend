@@ -31,6 +31,50 @@ app.use(cors()); // ⬅️ Ini juga WAJIB
 app.use(express.json({ limit: "5mb" })); // Bisa sesuaikan hingga 10mb kalau perlu
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
+// --- Google Sheets API setup for /api/getProfile ---
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const doc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
+(async () => {
+  // Ensure this matches exactly as required:
+  await doc.useServiceAccountAuth({
+    client_email: process.env.SERVICE_ACCOUNT_CLIENT_EMAIL,
+    private_key: process.env.SERVICE_ACCOUNT_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  });
+  await doc.loadInfo();
+
+  // Endpoint: Get Profile by UID from EL_MASTER_USER
+  app.get('/api/getProfile', async (req, res) => {
+    try {
+      const uid = req.query.uid;
+      if (!uid) {
+        return res.status(400).json({ error: 'Missing UID parameter' });
+      }
+
+      const sheet = doc.sheetsByTitle['EL_MASTER_USER'];
+      await sheet.loadHeaderRow();
+      const rows = await sheet.getRows();
+
+      const userRow = rows.find(row => row.UID === uid);
+      if (!userRow) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const profile = {
+        UID: userRow.UID,
+        Nama: userRow.Nama,
+        Email: userRow.Email,
+        Role: userRow.Role,
+        CID: userRow.CID
+      };
+
+      res.json(profile);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+})();
+
 // Ambil data dari Google Sheets PROFILE_ANAK
 async function getProfileAnakData() {
   const auth = new google.auth.GoogleAuth({
