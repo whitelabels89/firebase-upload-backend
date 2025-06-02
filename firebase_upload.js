@@ -1,55 +1,3 @@
-// --- Utility: Ambil data dari Google Sheets (sheetId, sheetName) dan return array of rows (object with headers) ---
-async function getSheetData(sheetId, sheetName) {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: "serviceAccountKey.json",
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-  const client = await auth.getClient();
-  const sheets = google.sheets({ version: "v4", auth: client });
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: sheetName + "!A1:Z",
-  });
-  const rows = response.data.values;
-  if (!rows || rows.length === 0) return [];
-  const headers = rows[0];
-  return rows.slice(1).map(row => {
-    const rowObj = {};
-    headers.forEach((header, i) => {
-      rowObj[header] = (row[i] || "").trim();
-      // Juga lowercase untuk akses fleksibel
-      rowObj[header.toLowerCase()] = (row[i] || "").trim();
-    });
-    return rowObj;
-  });
-}
-// ✅ Get CID by Email from PROFILE_ANAK
-app.get("/proxy-get-cid-by-email", async (req, res) => {
-  try {
-    const email = req.query.email;
-    if (!email) return res.status(400).json({ error: "Missing email parameter" });
-
-    const sheetId = "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY";
-    const sheetName = "PROFILE_ANAK";
-    const rows = await getSheetData(sheetId, sheetName);
-
-    const row = rows.find(r =>
-      (r.Email || r.email || "").toLowerCase().trim() === email.toLowerCase().trim()
-    );
-
-    if (!row) return res.status(404).json({ error: "Email tidak ditemukan" });
-
-    return res.json({
-      cid: row.CID || row.cid || "",
-      uid: row.UID || row.uid || "",
-      nama: row["Nama Anak"] || "",
-      usia: row["Usia Anak"] || ""
-    });
-  } catch (err) {
-    console.error("❌ Error proxy-get-cid-by-email:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
 const fetch = require('node-fetch');
 const express = require('express');
 const multer = require('multer');
@@ -389,7 +337,7 @@ app.post("/hapus-karya", async (req, res) => {
       console.warn("⚠️ Gagal menghapus file:", err.message);
     }
 
-    // Hapus baris dari sheettttt
+    // Hapus baris dari sheet
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: sheetId,
       requestBody: {
@@ -812,6 +760,25 @@ app.post("/simpan-email", async (req, res) => {
   } catch (err) {
     console.error("❌ Gagal simpan email:", err);
     res.status(500).json({ success: false, message: "❌ Gagal simpan email", error: err.message });
+  }
+});
+
+// Endpoint: Ambil CID berdasarkan email
+app.get('/proxy-get-cid-by-email', async (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: "Missing email" });
+  try {
+    const snapshot = await db.collection("akun").where("email", "==", email.toLowerCase()).limit(1).get();
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      const cid = doc.id;
+      res.json({ cid });
+    } else {
+      res.status(404).json({ error: "Email tidak ditemukan" });
+    }
+  } catch (err) {
+    console.error("❌ Gagal mengambil CID dari email:", err);
+    res.status(500).json({ error: "Gagal mengambil CID", detail: err.message });
   }
 });
 
