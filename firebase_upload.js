@@ -1,5 +1,6 @@
 // --- Upload gambar robot ke Firebase Storage + metadata ke Firestore ---
 const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
 const uploadMemory = multer({ storage: multer.memoryStorage() });
 
 // Endpoint: Upload gambar robot (Kody)
@@ -48,8 +49,7 @@ app.post('/upload-kody-image', uploadMemory.single('image'), async (req, res) =>
 });
 const fetch = require('node-fetch');
 const express = require('express');
-const multer = require('multer');
-const cors = require("cors"); // ⬅️ Tambahin ini
+const cors = require("cors");
 const { Storage } = require("@google-cloud/storage");
 const admin = require('firebase-admin');
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -60,23 +60,20 @@ const { google } = require("googleapis");
 // Tulis file kredensial lebih awal
 const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
 fs.writeFileSync("serviceAccountKey.json", serviceAccountBuffer);
-
 const serviceAccount = require("./serviceAccountKey.json");
-
 
 // Init Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'queens-academy-icoding.firebasestorage.app'
+  storageBucket: 'queens-academy-icoding.appspot.com'
 });
 
 const db = admin.firestore();
-
 const bucket = admin.storage().bucket();
 const app = express();
 const PORT = process.env.PORT || 3001;
-app.use(cors()); // ⬅️ Ini juga WAJIB
-app.use(express.json({ limit: "5mb" })); // Bisa sesuaikan hingga 10mb kalau perlu
+app.use(cors());
+app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 // Ambil data dari Google Sheets PROFILE_ANAK
@@ -138,7 +135,7 @@ app.post("/login", async (req, res) => {
       apiKey: "AIzaSyBVO4ajDwkbcTGL33SVMxIoev4veB8itgI",
       authDomain: "queens-academy-icoding.firebaseapp.com",
       projectId: "queens-academy-icoding",
-      storageBucket: "queens-academy-icoding.firebasestorage.app",
+      storageBucket: "queens-academy-icoding.appspot.com",
       messagingSenderId: "1048549258959",
       appId: "1:1048549258959:web:f8dc1c104bb170d7ff69ba",
       measurementId: "G-RJCXM1YL7E"
@@ -874,38 +871,3 @@ app.get('/proxy-get-cid-by-wa', async (req, res) => {
 });
 
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
-// Updated implementation:
-async function loginWithGoogle() {
-  try {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      hd: "queensacademy.id",
-      continueUrl: "https://queensacademy.id/dashboard.html"
-    });
-    const result = await signInWithPopup(auth, provider);
-    const email = result.user.email;
-
-    // Call the existing proxy-login-sheet endpoint
-    const response = await fetch(`${BACKEND_URL}/proxy-login-sheet`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} during loginSheet`);
-    }
-    const data = await response.json();
-    // Normalize field name from backend
-    const userCID = data.cid || data.CID;
-    if (userCID) {
-      localStorage.setItem("cid_login", userCID);
-      // Redirect to dashboard with cid parameter
-      window.location.href = `/dashboard.html?cid=${userCID}`;
-    } else {
-      throw new Error("CID tidak ditemukan dalam response");
-    }
-  } catch (err) {
-    console.error("❌ Login Gmail gagal:", err);
-    alert("Gagal login dengan Gmail. Silakan coba lagi.");
-  }
-}
