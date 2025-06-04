@@ -1,3 +1,51 @@
+// --- Upload gambar robot ke Firebase Storage + metadata ke Firestore ---
+const { v4: uuidv4 } = require('uuid');
+const uploadMemory = multer({ storage: multer.memoryStorage() });
+
+// Endpoint: Upload gambar robot (Kody)
+app.post('/upload-kody-image', uploadMemory.single('image'), async (req, res) => {
+  try {
+    const { cid, judul } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    if (!cid || !judul) {
+      return res.status(400).json({ success: false, message: 'Missing cid or judul' });
+    }
+
+    const filename = `kody/${cid}_${uuidv4()}.png`;
+    const fileUpload = bucket.file(filename);
+
+    const blobStream = fileUpload.createWriteStream({
+      metadata: {
+        contentType: file.mimetype
+      }
+    });
+
+    blobStream.on('error', (err) => {
+      console.error('Upload error:', err);
+      res.status(500).json({ success: false, message: 'Upload failed' });
+    });
+
+    blobStream.on('finish', async () => {
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+      await db.collection('karya_anak').add({
+        cid,
+        judul,
+        link: publicUrl,
+        timestamp: new Date()
+      });
+      res.json({ success: true, link: publicUrl });
+    });
+
+    blobStream.end(file.buffer);
+  } catch (err) {
+    console.error('Server error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 const fetch = require('node-fetch');
 const express = require('express');
 const multer = require('multer');
