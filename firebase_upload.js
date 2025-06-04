@@ -1,4 +1,7 @@
 // --- Upload gambar robot ke Firebase Storage + metadata ke Firestore ---
+const fs = require('fs');
+const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
+fs.writeFileSync("serviceAccountKey.json", serviceAccountBuffer);
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const uploadMemory = multer({ storage: multer.memoryStorage() });
@@ -53,13 +56,8 @@ const cors = require("cors");
 const { Storage } = require("@google-cloud/storage");
 const admin = require('firebase-admin');
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
-const fs = require('fs');
 const path = require('path');
 const { google } = require("googleapis");
-
-// Tulis file kredensial lebih awal
-const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
-fs.writeFileSync("serviceAccountKey.json", serviceAccountBuffer);
 const serviceAccount = require("./serviceAccountKey.json");
 
 // Init Firebase Admin
