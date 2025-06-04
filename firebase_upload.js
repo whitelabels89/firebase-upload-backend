@@ -1,10 +1,18 @@
 // --- Upload gambar robot ke Firebase Storage + metadata ke Firestore ---
+const express = require('express');
+const app = express();
 const fs = require('fs');
 const serviceAccountBuffer = Buffer.from(process.env.SERVICE_ACCOUNT_KEY_BASE64, "base64");
 fs.writeFileSync("serviceAccountKey.json", serviceAccountBuffer);
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const uploadMemory = multer({ storage: multer.memoryStorage() });
+
+// Middleware
+const cors = require("cors");
+app.use(cors());
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 // Endpoint: Upload gambar robot (Kody)
 app.post('/upload-kody-image', uploadMemory.single('image'), async (req, res) => {
@@ -51,8 +59,6 @@ app.post('/upload-kody-image', uploadMemory.single('image'), async (req, res) =>
   }
 });
 const fetch = require('node-fetch');
-const express = require('express');
-const cors = require("cors");
 const { Storage } = require("@google-cloud/storage");
 const admin = require('firebase-admin');
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -68,11 +74,7 @@ admin.initializeApp({
 
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
-const app = express();
 const PORT = process.env.PORT || 3001;
-app.use(cors());
-app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 // Ambil data dari Google Sheets PROFILE_ANAK
 async function getProfileAnakData() {
