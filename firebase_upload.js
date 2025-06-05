@@ -870,4 +870,96 @@ app.get('/proxy-get-cid-by-wa', async (req, res) => {
   }
 });
 
+// Endpoint: Simpan metadata karya ke Sheet dan Firestore
+app.post("/api/save-karya", async (req, res) => {
+  try {
+    const { cid, judul, link, id_karya, timestamp } = req.body;
+    if (!cid || !judul || !link || !id_karya || !timestamp) {
+      return res.status(400).json({ success: false, message: "Missing fields" });
+    }
+
+    // Simpan ke Google Sheets
+    await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cid, title: judul, url: link, id_karya })
+    });
+
+    // Simpan ke Firestore
+    await db.collection("karya_anak").doc(id_karya).set({
+      cid,
+      judul,
+      url: link,
+      id_karya,
+      timestamp
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Gagal simpan karya:", err);
+    res.status(500).json({ success: false, message: "Gagal simpan karya", error: err.message });
+  }
+});
+
+// Endpoint: Simpan progress ke Sheet
+app.post("/api/update-progress", async (req, res) => {
+  try {
+    const { cid, id_modul, status, skor, timestamp } = req.body;
+    if (!cid || !id_modul || !status || timestamp == null) {
+      return res.status(400).json({ success: false, message: "Missing fields" });
+    }
+
+    await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "updateProgress",
+        cid,
+        id_modul,
+        status,
+        skor,
+        timestamp
+      })
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Gagal update progress:", err);
+    res.status(500).json({ success: false, message: "Gagal update progress", error: err.message });
+  }
+});
+
+// Endpoint: Kirim notifikasi WhatsApp ke orang tua
+app.post("/api/notify-ortu", async (req, res) => {
+  try {
+    const { cid, link, judul } = req.body;
+    if (!cid || !link || !judul) {
+      return res.status(400).json({ success: false, message: "Missing fields" });
+    }
+
+    const profile = await fetch(`https://firebase-upload-backend.onrender.com/proxy-getprofile?cid=${cid}`);
+    const data = await profile.json();
+    const wa = data.whatsapp;
+    const nama = data.nama || "";
+
+    const msg = `👋 Halo, karya terbaru ${nama} sudah selesai dibuat!\n📘 Judul: ${judul}\n🔗 Link: ${link}\n🎉 Cek di dashboard Queen’s Academy ya!`;
+
+    await fetch("https://app.whacenter.com/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        device_id: "f435a4f1b1a5bd29a38f38b408789a27",
+        api_key: "792f407ba2b52aee94effa9432397a60",
+        number: wa,
+        message: msg
+      })
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Gagal kirim WA:", err);
+    res.status(500).json({ success: false, message: "Gagal kirim WA", error: err.message });
+  }
+});
+
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
