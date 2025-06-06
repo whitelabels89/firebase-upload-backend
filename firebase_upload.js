@@ -2,7 +2,7 @@
 // Google Sheets helper
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const docPsikotest = new GoogleSpreadsheet("1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY"); // QA Psikotest
-const docElearning = new GoogleSpreadsheet("QA_ELEARNING_SYSTEM_SHEET_ID"); // Ganti dengan ID sheet QA E-LEARNING SYSTEM
+const docElearning = new GoogleSpreadsheet("1OpsaEbvrysh7AoBEMfJbbKS9lXicaEpmzKcuYrUDUGQ"); // Ganti dengan ID sheet QA E-LEARNING SYSTEM
 
 async function authSheets(doc) {
   await doc.useServiceAccountAuth(serviceAccount);
