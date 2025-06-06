@@ -1,6 +1,5 @@
 
 // Google Sheets helper
-// const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { google } = require("googleapis");
 
 
@@ -46,45 +45,62 @@ app.get("/generate-cqa", async (req, res) => {
   }
 });
 
+// Deklarasi docPsikotest
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const docPsikotest = new GoogleSpreadsheet('1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY');
+
 // Endpoint: Daftar akun baru (simpan ke Firestore dan Sheets)
 app.post("/api/daftar-akun-baru", async (req, res) => {
   const { uid, cid, nama, email, wa, role } = req.body;
 
   try {
+    // Cek apakah CID sudah ada di PROFILE_ANAK
+    const auth = new google.auth.GoogleAuth({
+      keyFile: "serviceAccountKey.json",
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const client = await auth.getClient();
+    const sheetsClient = google.sheets({ version: "v4", auth: client });
+    const spreadsheetId = "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY";
+    const sheetName = "PROFILE_ANAK";
+
+    // Fetch all CID column
+    const getRes = await sheetsClient.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A2:A`,
+    });
+    const rows = getRes.data.values || [];
+    const cidExists = rows.some(row => (row[0] || "").toString().trim() === cid);
+    if (cidExists) {
+      return res.status(400).json({ error: "CID sudah terdaftar." });
+    }
+
     // 1. Simpan ke Firestore
     await db.collection("akun").doc(uid).set({
-      cid, nama, email, whatsapp: wa, role, migrated: true
+      cid, nama, email, whatsapp: wa, role: role || "murid", migrated: true
     });
 
-    // 2. Simpan ke Sheets PROFILE_ANAK
-    await authSheets(docPsikotest);
-    const sheetProfile = docPsikotest.sheetsByTitle["PROFILE_ANAK"];
-    await sheetProfile.addRow({
-      Timestamp: new Date().toISOString(),
-      CID: cid,
-      Nama: nama,
-      WhatsApp: wa,
-      Email: email,
-      Source: "daftar.html"
+    // 2. Simpan ke Sheets PROFILE_ANAK dengan header eksplisit
+    const values = [[
+      cid,
+      uid,
+      nama,
+      "", // Usia Anak
+      "", // Foto
+      wa,
+      "", // Password
+      email,
+      "TRUE", // Migrated
+      role || "murid"
+    ]];
+    await sheetsClient.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${sheetName}!A2`,
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      resource: { values }
     });
-
-    // 3. Simpan ke Sheets EL_MASTER_USER
-    await authSheets(docElearning);
-    const sheetMaster = docElearning.sheetsByTitle["EL_MASTER_USER"];
-    await sheetMaster.addRow({
-      UID: uid,
-      Nama: nama,
-      Email: email,
-      Role: role,
-      CID: cid,
-      Balance: 0,
-      Coin: 0,
-      Total_Poin: 0,
-      Status: "active"
-    });
-
-    // Tambahkan ke Google Sheets (API Google Sheets, bukan google-spreadsheet)
-    await appendToSheet({ cid, uid, nama, wa, email, role: "murid" });
+    console.log("✅ Data berhasil ditulis ke PROFILE_ANAK");
 
     res.status(200).json({ success: true });
   } catch (err) {
@@ -93,47 +109,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
   }
 });
 
-// Tambahkan ke Google Sheets (API Google Sheets, bukan google-spreadsheet)
-async function appendToSheet(profile) {
-  const auth = new google.auth.GoogleAuth({
-    credentials: serviceAccount,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-
-  const client = await auth.getClient();
-  const spreadsheetId = "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY"; // ID QA Psikotest
-  const sheetName = "PROFILE_ANAK";
-
-  // Define docPsikotest before using its length if needed
-  const docPsikotest = await sheets.spreadsheets.values.get({
-    spreadsheetId: "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY",
-    range: "PROFILE_ANAK!A1:Z",
-  });
-
-  const request = {
-    spreadsheetId,
-    range: `${sheetName}!A2`,
-    valueInputOption: "USER_ENTERED",
-    insertDataOption: "INSERT_ROWS",
-    resource: {
-      values: [[
-        profile.cid,
-        profile.uid,
-        profile.nama,
-        "", // Usia Anak
-        "", // Foto
-        profile.wa,
-        "", // Password
-        profile.email,
-        "true", // Migrated
-        profile.role || "murid"
-      ]],
-    },
-    auth: client,
-  };
-
-  await sheets.spreadsheets.values.append(request);
-}
+// (appendToSheet tidak digunakan lagi untuk daftar akun baru)
 
 // Endpoint: Upload gambar robot (Kody)
 app.post('/upload-kody-image', uploadMemory.single('image'), async (req, res) => {
@@ -1133,29 +1109,4 @@ async function updateWhatsappIfNeeded(email) {
 
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
 
-// Fungsi: Tambah ke Sheet PROFILE_ANAK menggunakan Google Sheets API
-async function tambahKeSheetProfileAnak(data) {
-  const sheetsClient = await authSheets();
-  const spreadsheetId = "1OpsaEbvrysh7AoBEMfJbbKS9lXicaEpmzKcuYrUDUGQ";
-
-  const values = [[
-    data.cid,
-    data.uid,
-    data.nama,
-    data.usia,
-    data.foto || "",
-    data.whatsapp,
-    data.password,
-    data.email,
-    data.migrated ? "TRUE" : "FALSE",
-    data.role || ""
-  ]];
-
-  await sheetsClient.spreadsheets.values.append({
-    spreadsheetId,
-    range: "PROFILE_ANAK!A2",
-    valueInputOption: "USER_ENTERED",
-    insertDataOption: "INSERT_ROWS",
-    resource: { values }
-  });
-}
+// Fungsi: Tambah ke Sheet PROFILE_ANAK menggunakan Google Sheets API (tidak dipakai di endpoint daftar-akun-baru)
