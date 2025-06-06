@@ -1,12 +1,17 @@
 
 // Google Sheets helper
-const { GoogleSpreadsheet } = require('google-spreadsheet');
-const docPsikotest = new GoogleSpreadsheet("1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY"); // QA Psikotest
-const docElearning = new GoogleSpreadsheet("1OpsaEbvrysh7AoBEMfJbbKS9lXicaEpmzKcuYrUDUGQ"); // Ganti dengan ID sheet QA E-LEARNING SYSTEM
+// const { GoogleSpreadsheet } = require('google-spreadsheet');
 
-async function authSheets(doc) {
-  await doc.useServiceAccountAuth(serviceAccount);
-  await doc.loadInfo();
+const { google } = require("googleapis");
+
+async function authSheets() {
+  const auth = new google.auth.JWT({
+    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"]
+  });
+
+  return google.sheets({ version: "v4", auth });
 }
 
 // --- Upload gambar robot ke Firebase Storage + metadata ke Firestore ---
@@ -1122,3 +1127,30 @@ async function updateWhatsappIfNeeded(email) {
 }
 
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
+
+// Fungsi: Tambah ke Sheet PROFILE_ANAK menggunakan Google Sheets API
+async function tambahKeSheetProfileAnak(data) {
+  const sheets = await authSheets();
+  const spreadsheetId = "1OpsaEbvrysh7AoBEMfJbbKS9lXicaEpmzKcuYrUDUGQ";
+
+  const values = [[
+    data.cid,
+    data.uid,
+    data.nama,
+    data.usia,
+    data.foto || "",
+    data.whatsapp,
+    data.password,
+    data.email,
+    data.migrated ? "TRUE" : "FALSE",
+    data.role || ""
+  ]];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: "PROFILE_ANAK!A2",
+    valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
+    resource: { values }
+  });
+}
