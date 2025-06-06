@@ -94,7 +94,6 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
 });
 
 // Tambahkan ke Google Sheets (API Google Sheets, bukan google-spreadsheet)
-
 async function appendToSheet(profile) {
   const auth = new google.auth.GoogleAuth({
     credentials: serviceAccount,
@@ -104,6 +103,12 @@ async function appendToSheet(profile) {
   const client = await auth.getClient();
   const spreadsheetId = "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY"; // ID QA Psikotest
   const sheetName = "PROFILE_ANAK";
+
+  // Define docPsikotest before using its length if needed
+  const docPsikotest = await sheets.spreadsheets.values.get({
+    spreadsheetId: "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY",
+    range: "PROFILE_ANAK!A1:Z",
+  });
 
   const request = {
     spreadsheetId,
