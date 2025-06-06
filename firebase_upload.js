@@ -1,16 +1,3 @@
-// Endpoint: Generate CID untuk akun baru (CQA)
-app.get("/generate-cqa", async (req, res) => {
-  try {
-    const snapshot = await db.collection("akun").get();
-    const count = snapshot.size;
-    const cidNumber = 10020000 + count + 1;
-    const cid = "CQA" + cidNumber;
-    res.json({ cid });
-  } catch (err) {
-    console.error("Error generating CID:", err);
-    res.status(500).json({ error: "Failed to generate CID" });
-  }
-});
 
 // Google Sheets helper
 const { GoogleSpreadsheet } = require('google-spreadsheet');
@@ -99,6 +86,20 @@ const cors = require("cors");
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+
+// Endpoint: Generate CID untuk akun baru (CQA)
+app.get("/generate-cqa", async (req, res) => {
+  try {
+    const snapshot = await db.collection("akun").get();
+    const count = snapshot.size;
+    const cidNumber = 10020000 + count + 1;
+    const cid = "CQA" + cidNumber;
+    res.json({ cid });
+  } catch (err) {
+    console.error("Error generating CID:", err);
+    res.status(500).json({ error: "Failed to generate CID" });
+  }
+});
 
 // Endpoint: Upload gambar robot (Kody)
 app.post('/upload-kody-image', uploadMemory.single('image'), async (req, res) => {
