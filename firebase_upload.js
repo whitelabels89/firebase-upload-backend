@@ -923,6 +923,36 @@ app.get('/proxy-get-cid-by-email', async (req, res) => {
   }
 });
 
+
+// Endpoint: Ambil role, cid, nama, email berdasarkan UID (Firestore)
+app.get("/api/get-role-by-uid", async (req, res) => {
+  const uid = req.query.uid;
+
+  if (!uid) return res.status(400).json({ error: "Missing uid" });
+
+  try {
+    const akunRef = admin.firestore().collection("akun").doc(uid);
+    const akunSnap = await akunRef.get();
+
+    if (!akunSnap.exists) {
+      return res.status(404).json({ error: "Akun tidak ditemukan" });
+    }
+
+    const akunData = akunSnap.data();
+
+    return res.json({
+      uid,
+      cid: akunData.cid || "",
+      role: akunData.role || "",
+      nama: akunData.nama || "",
+      email: akunData.email || "",
+    });
+  } catch (err) {
+    console.error("❌ Error fetching role by UID:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
