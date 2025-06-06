@@ -1,3 +1,22 @@
+// Endpoint: Sinkronisasi data akun dari Google Sheets ke Firestore
+app.get("/api/sync-akun", async (req, res) => {
+  try {
+    const syncRes = await fetch("https://script.google.com/macros/s/AKfycbx5cPx2YQzYLbjMzFJPwIEr_bMsm4VGB8OA-04p33hnuXK61Mm36U04W3IrihbsIDukhw/exec?action=syncAkunFromSheet");
+    const akunList = await syncRes.json();
+
+    const batch = db.batch();
+    akunList.forEach(akun => {
+      const ref = db.collection("akun").doc(akun.uid);
+      batch.set(ref, akun, { merge: true });
+    });
+
+    await batch.commit();
+    res.json({ success: true, count: akunList.length });
+  } catch (err) {
+    console.error("❌ Gagal sinkronisasi akun:", err);
+    res.status(500).json({ success: false, message: "Gagal sync akun", error: err.message });
+  }
+});
 // --- Upload gambar robot ke Firebase Storage + metadata ke Firestore ---
 const express = require('express');
 const app = express();
