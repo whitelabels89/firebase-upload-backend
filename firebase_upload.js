@@ -51,7 +51,7 @@ const docPsikotest = new GoogleSpreadsheet('1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSER
 
 // Endpoint: Daftar akun baru (simpan ke Firestore dan Sheets)
 app.post("/api/daftar-akun-baru", async (req, res) => {
-  const { uid, cid, nama, email, wa, role } = req.body;
+  const { uid, cid, nama, email, wa, password, role } = req.body;
 
   try {
     // Cek apakah CID sudah ada di PROFILE_ANAK
@@ -88,7 +88,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
       "", // Usia Anak
       "", // Foto
       wa,
-      "", // Password
+      password, // Password
       email,
       "TRUE", // Migrated
       role || "murid"
