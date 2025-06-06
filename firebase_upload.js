@@ -2,7 +2,6 @@
 // Google Sheets helper
 // const { GoogleSpreadsheet } = require('google-spreadsheet');
 
-const { google } = require("googleapis");
 
 async function authSheets() {
   const auth = new google.auth.JWT({
@@ -92,7 +91,6 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
 });
 
 // Tambahkan ke Google Sheets (API Google Sheets, bukan google-spreadsheet)
-const { google } = require("googleapis");
 const sheets = google.sheets("v4");
 
 async function appendToSheet(profile) {
