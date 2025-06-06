@@ -1,3 +1,70 @@
+// Endpoint: Generate CID untuk akun baru (CQA)
+app.get("/generate-cqa", async (req, res) => {
+  try {
+    const snapshot = await db.collection("akun").get();
+    const count = snapshot.size;
+    const cidNumber = 10020000 + count + 1;
+    const cid = "CQA" + cidNumber;
+    res.json({ cid });
+  } catch (err) {
+    console.error("Error generating CID:", err);
+    res.status(500).json({ error: "Failed to generate CID" });
+  }
+});
+
+// Google Sheets helper
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const docPsikotest = new GoogleSpreadsheet("1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY"); // QA Psikotest
+const docElearning = new GoogleSpreadsheet("QA_ELEARNING_SYSTEM_SHEET_ID"); // Ganti dengan ID sheet QA E-LEARNING SYSTEM
+
+async function authSheets(doc) {
+  await doc.useServiceAccountAuth(serviceAccount);
+  await doc.loadInfo();
+}
+
+// Endpoint: Daftar akun baru (simpan ke Firestore dan Sheets)
+app.post("/api/daftar-akun-baru", async (req, res) => {
+  const { uid, cid, nama, email, wa, role } = req.body;
+
+  try {
+    // 1. Simpan ke Firestore
+    await db.collection("akun").doc(uid).set({
+      cid, nama, email, whatsapp: wa, role, migrated: true
+    });
+
+    // 2. Simpan ke Sheets PROFILE_ANAK
+    await authSheets(docPsikotest);
+    const sheetProfile = docPsikotest.sheetsByTitle["PROFILE_ANAK"];
+    await sheetProfile.addRow({
+      Timestamp: new Date().toISOString(),
+      CID: cid,
+      Nama: nama,
+      WhatsApp: wa,
+      Email: email,
+      Source: "daftar.html"
+    });
+
+    // 3. Simpan ke Sheets EL_MASTER_USER
+    await authSheets(docElearning);
+    const sheetMaster = docElearning.sheetsByTitle["EL_MASTER_USER"];
+    await sheetMaster.addRow({
+      UID: uid,
+      Nama: nama,
+      Email: email,
+      Role: role,
+      CID: cid,
+      Balance: 0,
+      Coin: 0,
+      Total_Poin: 0,
+      Status: "active"
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error saving new account:", err);
+    res.status(500).json({ error: "Failed to save account" });
+  }
+});
 // Endpoint: Sinkronisasi data akun dari Google Sheets ke Firestore
 app.get("/api/sync-akun", async (req, res) => {
   try {
@@ -980,5 +1047,54 @@ app.post("/api/notify-ortu", async (req, res) => {
     res.status(500).json({ success: false, message: "Gagal kirim WA", error: err.message });
   }
 });
+
+
+// Fungsi: Ambil akun berdasarkan email dari Firestore
+async function getAccountByEmail(email) {
+  const usersRef = db.collection("akun");
+  const snapshot = await usersRef.where("email", "==", email).limit(1).get();
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return { uid: doc.id, ...doc.data() };
+}
+
+// Fungsi: Ambil WhatsApp berdasarkan CID dari spreadsheet PROFILE_ANAK
+async function getWhatsappFromSheetByCID(cid) {
+  const sheetId = '1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY'; // QA Psikotest
+  const tabName = 'PROFILE_ANAK';
+  const auth = new google.auth.GoogleAuth({
+    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+  });
+  const sheets = google.sheets({ version: 'v4', auth });
+  const range = `${tabName}!A2:H`;
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: range,
+  });
+
+  const rows = response.data.values;
+  if (!rows) return null;
+
+  for (let row of rows) {
+    const sheetCID = row[1]?.trim(); // Kolom B = CID
+    const whatsapp = row[3]?.trim(); // Kolom D = WhatsApp
+    if (sheetCID === cid && whatsapp) return whatsapp;
+  }
+
+  return null;
+}
+
+// Fungsi: Update WhatsApp ke Firestore jika belum ada
+async function updateWhatsappIfNeeded(email) {
+  const akun = await getAccountByEmail(email);
+  if (!akun || akun.whatsapp) return;
+
+  const whatsapp = await getWhatsappFromSheetByCID(akun.cid);
+  if (whatsapp) {
+    await db.collection("akun").doc(akun.uid).update({ whatsapp });
+    console.log(`✅ Whatsapp updated for ${akun.uid}`);
+  }
+}
 
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
