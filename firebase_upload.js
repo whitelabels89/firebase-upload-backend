@@ -174,7 +174,6 @@ const { Storage } = require("@google-cloud/storage");
 const admin = require('firebase-admin');
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 const path = require('path');
-const { google } = require("googleapis");
 const serviceAccount = require("./serviceAccountKey.json");
 
 // Init Firebase Admin
