@@ -76,12 +76,54 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
       Status: "active"
     });
 
-    res.json({ success: true });
+    // Tambahkan ke Google Sheets (API Google Sheets, bukan google-spreadsheet)
+    await appendToSheet({ cid, uid, nama, wa, email, role: "murid" });
+
+    res.status(200).json({ success: true });
   } catch (err) {
     console.error("Error saving new account:", err);
     res.status(500).json({ error: "Failed to save account" });
   }
 });
+
+// Tambahkan ke Google Sheets (API Google Sheets, bukan google-spreadsheet)
+const { google } = require("googleapis");
+const sheets = google.sheets("v4");
+
+async function appendToSheet(profile) {
+  const auth = new google.auth.GoogleAuth({
+    credentials: serviceAccount,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+
+  const client = await auth.getClient();
+  const spreadsheetId = "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY"; // ID QA Psikotest
+  const sheetName = "PROFILE_ANAK";
+
+  const request = {
+    spreadsheetId,
+    range: `${sheetName}!A2`,
+    valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
+    resource: {
+      values: [[
+        profile.cid,
+        profile.uid,
+        profile.nama,
+        "", // Usia Anak
+        "", // Foto
+        profile.wa,
+        "", // Password
+        profile.email,
+        "true", // Migrated
+        profile.role || "murid"
+      ]],
+    },
+    auth: client,
+  };
+
+  await sheets.spreadsheets.values.append(request);
+}
 
 // Endpoint: Upload gambar robot (Kody)
 app.post('/upload-kody-image', uploadMemory.single('image'), async (req, res) => {
