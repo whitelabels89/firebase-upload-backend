@@ -1,6 +1,7 @@
 
 // Google Sheets helper
 // const { GoogleSpreadsheet } = require('google-spreadsheet');
+const { google } = require("googleapis");
 
 
 async function authSheets() {
@@ -28,6 +29,8 @@ const cors = require("cors");
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+
+const sheets = google.sheets("v4");
 
 // Endpoint: Generate CID untuk akun baru (CQA)
 app.get("/generate-cqa", async (req, res) => {
@@ -91,7 +94,6 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
 });
 
 // Tambahkan ke Google Sheets (API Google Sheets, bukan google-spreadsheet)
-const sheets = google.sheets("v4");
 
 async function appendToSheet(profile) {
   const auth = new google.auth.GoogleAuth({
@@ -196,10 +198,10 @@ async function getProfileAnakData() {
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
   const client = await auth.getClient();
-  const sheets = google.sheets({ version: "v4", auth: client });
+  const sheetsClient = google.sheets({ version: "v4", auth: client });
   const spreadsheetId = process.env.SPREADSHEET_ID;
 
-  const response = await sheets.spreadsheets.values.get({
+  const response = await sheetsClient.spreadsheets.values.get({
     spreadsheetId,
     range: "PROFILE_ANAK!A1:Z",
   });
@@ -1092,10 +1094,10 @@ async function getWhatsappFromSheetByCID(cid) {
   const auth = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
   });
-  const sheets = google.sheets({ version: 'v4', auth });
+  const sheetsClient = google.sheets({ version: 'v4', auth });
   const range = `${tabName}!A2:H`;
 
-  const response = await sheets.spreadsheets.values.get({
+  const response = await sheetsClient.spreadsheets.values.get({
     spreadsheetId: sheetId,
     range: range,
   });
@@ -1128,7 +1130,7 @@ async function updateWhatsappIfNeeded(email) {
 
 // Fungsi: Tambah ke Sheet PROFILE_ANAK menggunakan Google Sheets API
 async function tambahKeSheetProfileAnak(data) {
-  const sheets = await authSheets();
+  const sheetsClient = await authSheets();
   const spreadsheetId = "1OpsaEbvrysh7AoBEMfJbbKS9lXicaEpmzKcuYrUDUGQ";
 
   const values = [[
@@ -1144,7 +1146,7 @@ async function tambahKeSheetProfileAnak(data) {
     data.role || ""
   ]];
 
-  await sheets.spreadsheets.values.append({
+  await sheetsClient.spreadsheets.values.append({
     spreadsheetId,
     range: "PROFILE_ANAK!A2",
     valueInputOption: "USER_ENTERED",
