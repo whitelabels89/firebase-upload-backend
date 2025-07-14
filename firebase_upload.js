@@ -1155,14 +1155,14 @@ async function updateWhatsappIfNeeded(email) {
 // Fungsi: Tambah ke Sheet PROFILE_ANAK menggunakan Google Sheets API (tidak dipakai di endpoint daftar-akun-baru)
 // Endpoint: Assign akses lesson ke muridddd
 app.post("/api/assign-lesson", async (req, res) => {
-  const { uid, lesson } = req.body;
+  const { cid, lesson } = req.body;
 
-  if (!uid || !lesson) {
-    return res.status(400).json({ success: false, message: "Missing uid or lesson" });
+  if (!cid || !lesson) {
+    return res.status(400).json({ success: false, message: "Missing cid or lesson" });
   }
 
   try {
-    const muridRef = db.collection("akun").doc(uid);
+    const muridRef = db.collection("akun").doc(cid);
     await muridRef.set({
       akses_lesson: admin.firestore.FieldValue.arrayUnion(lesson)
     }, { merge: true });
