@@ -79,12 +79,13 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
     // 🔐 Tambahkan akun ke Firebase Authentication
     await ensureEmailPasswordUser(email, password);
 
-    // 1. Simpan ke Firestore (pakai doc(cid)) - ke collection 'akun'
-    if (!cid) {
-      console.error("❌ Gagal menyimpan akun karena CID kosong.");
-      return res.status(400).json({ error: "CID kosong, tidak bisa simpan ke Firestore." });
+    // 1. Simpan ke Firestore (pakai doc(uid)) - ke collection 'akun'
+    if (!uid) {
+      console.error("❌ Gagal menyimpan akun karena UID kosong.");
+      return res.status(400).json({ error: "UID kosong, tidak bisa simpan ke Firestore." });
     }
-    await db.collection("akun").doc(cid).set({
+    await db.collection("akun").doc(uid).set({
+      uid,
       cid,
       nama,
       email,
