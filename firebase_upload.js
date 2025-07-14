@@ -1061,6 +1061,22 @@ app.post("/api/selesai-kelas", async (req, res) => {
       timestamp
     });
 
+    // Mirror hasil ke Google Sheets
+    await fetch("https://firebase-upload-backend.onrender.com/api/mirror-hasil-quiz", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cid,
+        modul,
+        lesson,
+        quiz_teori,
+        quiz_praktek,
+        jawaban_teori,
+        jawaban_praktek,
+        timestamp
+      })
+    });
+
     res.status(200).json({ success: true });
   } catch (err) {
     console.error("❌ Gagal menyimpan hasil quiz:", err);
