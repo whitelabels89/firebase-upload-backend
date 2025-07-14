@@ -1140,3 +1140,23 @@ async function updateWhatsappIfNeeded(email) {
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
 
 // Fungsi: Tambah ke Sheet PROFILE_ANAK menggunakan Google Sheets API (tidak dipakai di endpoint daftar-akun-baru)
+// Endpoint: Assign akses lesson ke murid
+app.post("/api/assign-lesson", async (req, res) => {
+  const { uid, lesson } = req.body;
+
+  if (!uid || !lesson) {
+    return res.status(400).json({ success: false, message: "Missing uid or lesson" });
+  }
+
+  try {
+    const muridRef = db.collection("akun").doc(uid);
+    await muridRef.set({
+      akses_lesson: admin.firestore.FieldValue.arrayUnion(lesson)
+    }, { merge: true });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Gagal assign lesson:", err);
+    res.status(500).json({ success: false, message: "Gagal assign lesson", error: err.message });
+  }
+});
