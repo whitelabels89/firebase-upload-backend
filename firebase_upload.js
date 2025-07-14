@@ -1201,11 +1201,30 @@ app.post("/api/assign-lesson", async (req, res) => {
   }
 
   try {
-    const muridRef = db.collection("akun").doc(cid);
+    // Cari dokumen akun berdasarkan field "cid"
+    const snapshot = await db.collection("akun").where("cid", "==", cid).limit(1).get();
+    if (snapshot.empty) {
+      return res.status(404).json({ success: false, message: "Akun dengan CID tidak ditemukan" });
+    }
+    const docId = snapshot.docs[0].id;
+    const muridRef = db.collection("akun").doc(docId);
+
+    // Cek apakah lesson sudah ada di akses_lesson
+    const docSnap = await muridRef.get();
+    let aksesLesson = [];
+    if (docSnap.exists) {
+      aksesLesson = docSnap.data().akses_lesson || [];
+    }
+    if (aksesLesson.includes(lesson)) {
+      console.log(`⚠️ Lesson '${lesson}' sudah ada di akses_lesson untuk CID ${cid}`);
+      return res.json({ success: true, message: "Lesson sudah pernah di-assign" });
+    }
+
     await muridRef.set({
       akses_lesson: admin.firestore.FieldValue.arrayUnion(lesson)
     }, { merge: true });
 
+    console.log(`✅ Lesson '${lesson}' berhasil diassign ke CID ${cid} (docId: ${docId})`);
     res.json({ success: true });
   } catch (err) {
     console.error("❌ Gagal assign lesson:", err);
