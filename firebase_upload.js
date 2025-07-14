@@ -75,7 +75,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
       return res.status(400).json({ error: "CID sudah terdaftar." });
     }
 
-    // 1. Simpan ke Firestore (pakai doc(cid))
+    // 1. Simpan ke Firestore (pakai doc(cid)) - ke collection 'akun'
     await db.collection("akun").doc(cid).set({
       cid,
       nama,
@@ -86,11 +86,30 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
       akses_lesson: []
     });
 
-    // Salin data ke koleksi murid/guru sesuai role
+    // Salin data ke koleksi murid/guru/moderator sesuai role
     if (role === "murid") {
-      await db.collection("murid").doc(cid).set({ cid, nama, email, whatsapp: wa });
-    } else if (role === "guru" || role === "moderator") {
-      await db.collection("guru").doc(cid).set({ cid, nama, email, whatsapp: wa, role });
+      await db.collection("murid").doc(cid).set({
+        cid,
+        nama,
+        email,
+        whatsapp: wa
+      });
+    } else if (role === "guru") {
+      await db.collection("guru").doc(cid).set({
+        cid,
+        nama,
+        email,
+        whatsapp: wa,
+        role: "guru"
+      });
+    } else if (role === "moderator") {
+      await db.collection("guru").doc(cid).set({
+        cid,
+        nama,
+        email,
+        whatsapp: wa,
+        role: "moderator"
+      });
     }
 
     // 2. Simpan ke Sheets PROFILE_ANAK dengan header eksplisit
