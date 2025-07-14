@@ -985,6 +985,19 @@ app.get("/api/get-role-by-uid", async (req, res) => {
   }
 });
 
+
+// Endpoint: Ambil semua murid dari Firestore
+app.get("/api/semua-murid", async (req, res) => {
+  try {
+    const snapshot = await db.collection("murid").get();
+    const muridList = snapshot.docs.map(doc => doc.data());
+    res.json(muridList);
+  } catch (err) {
+    console.error("❌ Gagal ambil data murid:", err);
+    res.status(500).json({ error: "Gagal ambil data murid" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
