@@ -52,6 +52,7 @@ const docPsikotest = new GoogleSpreadsheet('1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSER
 // Endpoint: Daftar akun baru (simpan ke Firestore dan Sheets)
 app.post("/api/daftar-akun-baru", async (req, res) => {
   const { uid, cid, nama, email, wa, password, role } = req.body;
+  console.log("📦 Payload daftar akun:", { uid, cid, nama, email, wa, password, role });
 
   try {
     // Cek apakah CID sudah ada di PROFILE_ANAK
@@ -76,6 +77,10 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
     }
 
     // 1. Simpan ke Firestore (pakai doc(cid)) - ke collection 'akun'
+    if (!cid) {
+      console.error("❌ Gagal menyimpan akun karena CID kosong.");
+      return res.status(400).json({ error: "CID kosong, tidak bisa simpan ke Firestore." });
+    }
     await db.collection("akun").doc(cid).set({
       cid,
       nama,
