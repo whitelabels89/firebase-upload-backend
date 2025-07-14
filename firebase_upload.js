@@ -79,6 +79,10 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
     await db.collection("akun").doc(uid).set({
       cid, nama, email, whatsapp: wa, role: role || "murid", migrated: true
     });
+    // Pastikan juga akses_lesson default ditulis agar bisa assign lesson
+    await db.collection("akun").doc(uid).set({
+      akses_lesson: []
+    }, { merge: true });
 
     // 2. Simpan ke Sheets PROFILE_ANAK dengan header eksplisit
     const values = [[
