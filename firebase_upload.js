@@ -54,7 +54,7 @@ app.get("/generate-cqa", async (req, res) => {
 
 // Deklarasi docPsikotest
 const { GoogleSpreadsheet } = require('google-spreadsheet');
-const docPsikotest = new GoogleSpreadsheet('1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY');
+const docPsikotest = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
 
 // Endpoint: Daftar akun baru (simpan ke Firestore dan Sheets)
 app.post("/api/daftar-akun-baru", async (req, res) => {
