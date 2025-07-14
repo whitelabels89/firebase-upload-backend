@@ -54,7 +54,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
   const { uid, cid, nama, email, wa, password, role } = req.body;
 
   try {
-    // Cek apakah CID sudah ada di PROFILE_ANAKKK
+    // Cek apakah CID sudah ada di PROFILE_ANAK
     const auth = new google.auth.GoogleAuth({
       keyFile: "serviceAccountKey.json",
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -75,14 +75,23 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
       return res.status(400).json({ error: "CID sudah terdaftar." });
     }
 
-    // 1. Simpan ke Firestore
-    await db.collection("akun").doc(uid).set({
-      cid, nama, email, whatsapp: wa, role: role || "murid", migrated: true
-    });
-    // Pastikan juga akses_lesson default ditulis agar bisa assign lesson
-    await db.collection("akun").doc(uid).set({
+    // 1. Simpan ke Firestore (pakai doc(cid))
+    await db.collection("akun").doc(cid).set({
+      cid,
+      nama,
+      email,
+      whatsapp: wa,
+      role: role || "murid",
+      migrated: true,
       akses_lesson: []
-    }, { merge: true });
+    });
+
+    // Salin data ke koleksi murid/guru sesuai role
+    if (role === "murid") {
+      await db.collection("murid").doc(cid).set({ cid, nama, email, whatsapp: wa });
+    } else if (role === "guru" || role === "moderator") {
+      await db.collection("guru").doc(cid).set({ cid, nama, email, whatsapp: wa, role });
+    }
 
     // 2. Simpan ke Sheets PROFILE_ANAK dengan header eksplisit
     const values = [[
