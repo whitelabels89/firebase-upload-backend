@@ -1144,7 +1144,7 @@ async function updateWhatsappIfNeeded(email) {
 // --- Fungsi loginWithGoogle (frontend, bukan backend) ---
 
 // Fungsi: Tambah ke Sheet PROFILE_ANAK menggunakan Google Sheets API (tidak dipakai di endpoint daftar-akun-baru)
-// Endpoint: Assign akses lesson ke murid
+// Endpoint: Assign akses lesson ke muridddd
 app.post("/api/assign-lesson", async (req, res) => {
   const { uid, lesson } = req.body;
 
