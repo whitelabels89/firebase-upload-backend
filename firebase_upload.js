@@ -1361,3 +1361,47 @@ app.post("/api/mirror-hasil-quiz", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// Endpoint: Mirror akun ke Google Sheet EL_MASTER_USER
+app.post("/api/mirror-akun-ke-sheet", async (req, res) => {
+  try {
+    const akunSnapshot = await db.collection("akun").get();
+    const akunList = akunSnapshot.docs.map(doc => doc.data());
+
+    const auth = new google.auth.GoogleAuth({
+      keyFile: "serviceAccountKey.json",
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheets = google.sheets({ version: "v4", auth: await auth.getClient() });
+
+    const spreadsheetId = process.env.SPREADSHEET_ID;
+    const sheetName = "EL_MASTER_USER";
+
+    const values = akunList.map(user => [
+      user.uid || "",
+      user.cid || "",
+      user.nama || "",
+      user.email || "",
+      user.whatsapp || "",
+      user.role || "",
+      user.migrated ? "TRUE" : "FALSE"
+    ]);
+
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `${sheetName}!A2:Z`,
+    });
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!A2`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values }
+    });
+
+    res.json({ success: true, total: values.length });
+  } catch (err) {
+    console.error("❌ Gagal mirroring akun:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
