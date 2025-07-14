@@ -2,6 +2,13 @@
 // Google Sheets helper
 const { google } = require("googleapis");
 
+function getSheetsAuth() {
+  return new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_CREDS_JSON),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+}
+
 
 async function authSheets() {
   const auth = new google.auth.JWT({
