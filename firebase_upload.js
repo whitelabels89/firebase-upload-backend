@@ -1005,6 +1005,24 @@ app.get("/api/semua-murid", async (req, res) => {
   }
 });
 
+
+// Endpoint: Ambil akses lesson berdasarkan UID (digunakan oleh frontend untuk validasi akses)
+app.get("/api/akses-murid/:uid", async (req, res) => {
+  const uid = req.params.uid;
+  if (!uid) return res.status(400).json({ error: "Missing UID" });
+
+  try {
+    const doc = await db.collection("akun").doc(uid).get();
+    if (!doc.exists) return res.status(404).json({ error: "Akun tidak ditemukan" });
+
+    const akses_lesson = doc.data().akses_lesson || [];
+    res.json({ akses_lesson });
+  } catch (err) {
+    console.error("❌ Gagal ambil akses murid:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
