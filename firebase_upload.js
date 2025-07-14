@@ -1287,3 +1287,54 @@ app.post("/api/assign-lesson", async (req, res) => {
     res.status(500).json({ success: false, message: "Gagal assign lesson", error: err.message });
   }
 });
+// Endpoint: Mirror hasil quiz ke Google Sheets
+app.post("/api/mirror-hasil-quiz", async (req, res) => {
+  try {
+    const {
+      cid,
+      modul,
+      lesson,
+      quiz_teori,
+      quiz_praktek,
+      jawaban_teori,
+      jawaban_praktek,
+      timestamp
+    } = req.body;
+
+    if (!cid || !lesson) {
+      return res.status(400).json({ error: "CID dan lesson harus disertakan" });
+    }
+
+    const auth = new google.auth.GoogleAuth({
+      keyFile: "serviceAccountKey.json",
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheetsClient = google.sheets({ version: "v4", auth: await auth.getClient() });
+    const spreadsheetId = process.env.SPREADSHEET_ID;
+    const sheetName = "EL_HASIL_KELAS";
+
+    const values = [[
+      new Date(timestamp).toISOString(),
+      cid,
+      modul,
+      lesson,
+      quiz_teori,
+      quiz_praktek,
+      JSON.stringify(jawaban_teori),
+      JSON.stringify(jawaban_praktek)
+    ]];
+
+    await sheetsClient.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${sheetName}!A2`,
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      resource: { values }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Gagal mirror hasil quiz ke Sheet:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
