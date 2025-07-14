@@ -1023,6 +1023,44 @@ app.get("/api/akses-murid/:uid", async (req, res) => {
   }
 });
 
+
+// Endpoint: Selesai Kelas - simpan hasil quiz ke Firestore
+app.post("/api/selesai-kelas", async (req, res) => {
+  try {
+    const {
+      cid,
+      modul,
+      lesson,
+      quiz_teori,
+      quiz_praktek,
+      jawaban_teori,
+      jawaban_praktek,
+      timestamp
+    } = req.body;
+
+    if (!cid || !lesson) {
+      return res.status(400).json({ error: "CID dan lesson harus disertakan" });
+    }
+
+    const docRef = db.collection("hasil_quiz").doc(`${cid}_${lesson}`);
+    await docRef.set({
+      cid,
+      modul,
+      lesson,
+      quiz_teori,
+      quiz_praktek,
+      jawaban_teori,
+      jawaban_praktek,
+      timestamp
+    });
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("❌ Gagal menyimpan hasil quiz:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
