@@ -76,6 +76,9 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
       return res.status(400).json({ error: "CID sudah terdaftar." });
     }
 
+    // 🔐 Tambahkan akun ke Firebase Authentication
+    await ensureEmailPasswordUser(email, password);
+
     // 1. Simpan ke Firestore (pakai doc(cid)) - ke collection 'akun'
     if (!cid) {
       console.error("❌ Gagal menyimpan akun karena CID kosong.");
