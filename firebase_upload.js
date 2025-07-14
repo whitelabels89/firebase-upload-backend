@@ -54,7 +54,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
   const { uid, cid, nama, email, wa, password, role } = req.body;
 
   try {
-    // Cek apakah CID sudah ada di PROFILE_ANAK
+    // Cek apakah CID sudah ada di PROFILE_ANAKKK
     const auth = new google.auth.GoogleAuth({
       keyFile: "serviceAccountKey.json",
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
