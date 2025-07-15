@@ -62,7 +62,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
   console.log("📦 Payload daftar akun:", { cid, nama, email, wa, password, role });
 
   try {
-    // Cek apakah CID sudah ada di PROFILE_ANAK
+    // Cek apakah CID sudah ada di EL_MASTER_USER
     const auth = new google.auth.GoogleAuth({
       keyFile: "serviceAccountKey.json",
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
@@ -70,7 +70,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
     const client = await auth.getClient();
     const sheetsClient = google.sheets({ version: "v4", auth: client });
     const spreadsheetId = process.env.SPREADSHEET_ID;
-    const sheetName = "PROFILE_ANAK";
+    const sheetName = "EL_MASTER_USER";
 
     // Fetch all CID column
     const getRes = await sheetsClient.spreadsheets.values.get({
@@ -126,7 +126,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
       });
     }
 
-    // 2. Simpan ke Sheets PROFILE_ANAK dengan header eksplisit
+    // 2. Simpan ke Sheets EL_MASTER_USER dengan header eksplisit
     const values = [[
       cid,
       uid,
@@ -146,7 +146,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
       insertDataOption: "INSERT_ROWS",
       resource: { values }
     });
-    console.log("✅ Data berhasil ditulis ke PROFILE_ANAK");
+    console.log("✅ Data berhasil ditulis ke EL_MASTER_USER");
 
     res.status(200).json({ success: true });
   } catch (err) {
