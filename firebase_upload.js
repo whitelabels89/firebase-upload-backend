@@ -69,7 +69,7 @@ app.post("/api/daftar-akun-baru", async (req, res) => {
     });
     const client = await auth.getClient();
     const sheetsClient = google.sheets({ version: "v4", auth: client });
-    const spreadsheetId = "1z7ybkdO4eLsV_STdzO8pOVMZNUzdfcScSERyOFNm-GY";
+    const spreadsheetId = process.env.SPREADSHEET_ID;
     const sheetName = "PROFILE_ANAK";
 
     // Fetch all CID column
