@@ -1439,3 +1439,15 @@ app.post("/api/mirror-akun-ke-sheet", async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+// Helper: Get murid data by CID from Firestore
+async function getMuridByCID(cid) {
+  const docRef = db.collection('murid').doc(cid);
+  const doc = await docRef.get();
+  if (!doc.exists) return null;
+  return doc.data();
+}
+
+module.exports = {
+  ...module.exports,
+  getMuridByCID
+};
