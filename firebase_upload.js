@@ -1,3 +1,20 @@
+// Endpoint: Ambil data murid berdasarkan CID dari Firestore
+app.get('/api/murid/:cid', async (req, res) => {
+  const cid = req.params.cid;
+  try {
+    const docRef = db.collection('murid').doc(cid);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Data murid tidak ditemukan' });
+    }
+
+    return res.json(doc.data());
+  } catch (error) {
+    console.error('Error ambil data murid:', error);
+    return res.status(500).json({ error: 'Gagal mengambil data murid' });
+  }
+});
 
 // Google Sheets helper
 const { google } = require("googleapis");
